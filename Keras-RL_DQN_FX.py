@@ -19,8 +19,8 @@ import time
 
 logger = getLogger(__name__)
 handler = StreamHandler()
-handler.setLevel(INFO)
-logger.setLevel(INFO)
+handler.setLevel(DEBUG)
+logger.setLevel(DEBUG)
 logger.addHandler(handler)
 
 class DebugTools:
