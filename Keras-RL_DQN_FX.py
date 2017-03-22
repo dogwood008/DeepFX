@@ -16,24 +16,17 @@ from logging import getLogger, StreamHandler, DEBUG, INFO
 
 # In[2]:
 
-#class Loglevel(enum.Enum):
-#    DEBUG = 0; INFO = 1; NOTICE = 2; WARN = 3; ERROR = 3
-
-
-# In[3]:
-
 logger = getLogger(__name__)
 handler = StreamHandler()
 handler.setLevel(INFO)
 logger.setLevel(INFO)
 logger.addHandler(handler)
 
-#Loglevel = enum.Enum('Loglevel', 'DEBUG INFO NOTICE WARN ERROR')
 class Action(enum.Enum):
     SELL = -1; STAY = 0; BUY = +1
 
 
-# In[4]:
+# In[3]:
 
 class HistData:
     def __init__(self, date_range=None):
@@ -55,25 +48,25 @@ class HistData:
         return self.data().loc[datetime]
 
 
-# In[5]:
+# In[4]:
 
 h = HistData('2010/09')
 
 
-# In[6]:
+# In[5]:
 
 # https://chrisalbon.com/python/pandas_time_series_basics.html
 # h.data()['2010/09']
 
 
-# In[7]:
+# In[6]:
 
 #np.datetime64('2010-09-30T23:59:00.000000000+0000').total_seconds()
 import numpy as np
 np.version.full_version
 
 
-# In[8]:
+# In[7]:
 
 ''' ポジション '''
 class Position:
@@ -94,7 +87,7 @@ class Position:
             return self.price - now_price
 
 
-# In[21]:
+# In[8]:
 
 class FXTrade(gym.core.Env):
     AMOUNT_UNIT = 50000
@@ -266,10 +259,8 @@ class FXTrade(gym.core.Env):
         if done:
             print('now_datetime: %s' % now_datetime)
             print('self.hist_data.dates()[-1]: %s' % self.hist_data.dates()[-1])
-        else:
-            print('now_datetime: %s' % now_datetime)
-            print('self.hist_data.dates()[-1]: %s' % self.hist_data.dates()[-1])
-            assert False
+            assert False #FIXME
+
 
         # 報酬は現金と総含み益
         reward = self._total_unrealized_gain + self.cash
@@ -294,7 +285,7 @@ class FXTrade(gym.core.Env):
     
 
 
-# In[20]:
+# In[9]:
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
@@ -328,29 +319,42 @@ dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmu
                target_model_update=1e-2, policy=policy)
 dqn.compile(Adam(lr=1e-3), metrics=['mae'])
 
-history = dqn.fit(env, nb_steps=50000, visualize=False, verbose=2, nb_max_episode_steps=300)
+history = dqn.fit(env, nb_steps=50000, visualize=False, verbose=2, nb_max_episode_steps=None)
 #学習の様子を描画したいときは、Envに_render()を実装して、visualize=True にします,
 
 
 # ## 現在の問題点その1
 # `h = HistData('2010/09')` として、2010年の9月分を学習用に与えているが、ログを見る限り2010年9月1日3:20:00迄しか学習していない？
 
-# In[11]:
+# ### 問題点その1に対する解
+# 
+# `nb_max_episode_steps = None` にする。これが各エピソードにおけるステップ数の上限になっていた。
+# 
+# `2010-09-01T05:00:00.000000+0000` で終了するのは、 60 min * 5 hours = 300 steps で上限に達していたからだった。
+# 
+# ソース: https://github.com/matthiasplappert/keras-rl/blob/master/rl/core.py#L280
+
+# In[ ]:
+
+len(h.data()['2010/09'])
+
+
+# In[ ]:
 
 model.save('Keras-RL_DQN_FX_model.h5')
 
 
-# In[12]:
+# In[ ]:
 
 history
 
 
-# In[13]:
+# In[ ]:
 
 model.save('Keras-RL_DQN_FX_weights.h5')
 
 
-# In[14]:
+# In[ ]:
 
 import rl.callbacks
 class EpisodeLogger(rl.callbacks.Callback):
