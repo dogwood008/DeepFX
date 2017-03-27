@@ -33,17 +33,22 @@ class HistData:
         self.csv_path = 'USDJPY.hst_.csv'
         self.csv_data = pd.read_csv(self.csv_path, index_col=0, parse_dates=True, header=0)
         self.date_range = date_range
+
     def data(self):
         if self.date_range is None:
             return self.csv_data
         else:
             return self.csv_data[self.date_range]
+
     def max_value(self):
         return self.data()[['High']].max()['High']
+
     def min_value(self):
         return self.data()[['Low']].min()['Low']
+
     def dates(self):
         return self.data().index.values
+
     def get_last_exist_datetime_recursively(self, datetime64_value):
         try:
             return self.data().loc[datetime64_value], datetime64_value
@@ -52,42 +57,49 @@ class HistData:
                 return self.data().iloc[0], self.data().index[0]
             previous_datetime = datetime64_value - np.timedelta64(1, 'm')
             return self.get_last_exist_datetime_recursively(previous_datetime)
-'''    def get_values_at(self, datetime):
-        values = None
-        try:
-            values = self.data().loc[datetime]
-        except KeyError: 
-            assert False # FXIME
-            last_exists_datetime = get_last_exists_datetime(datetime) - np.timedelta64(dminute, 'm')
-            get_values_at
-        return values
-'''
+        
+    ''' 引数の日時を含む直後に存在する値を取得する '''
+    def get_next_exist_datetime(self, datetime64_value):
+        index_size = len(self.data())
+        last_index = index_size - 1
+        # KeyErrorは補足しない。範囲外にならないように学習の際に
+        # `nb_max_episode_steps` を与える必要がある
+        next_index = min(             self.data().index.get_loc(datetime64_value) + 1,              last_index)
+        return self.data().iloc[next_index], self.data().index[next_index]
 
+
+# ## 現在の問題点その3
+# 
+# 一つ心配事は、土日等休場日も学習すべきかどうかである。おそらく、４８時間全く値動きがないことを学習しても仕方ないので、これは飛ばして良いと思う。問題はその次の数分の欠測である。欠測の間は値動き無しとして学習するのが良いのか、純粋に経過時間（分）で学習するのが良いのかは、明確な答えを持っていない。一旦、閾値までの間値動きがなければ、次の値動きまでスキップするようにしようと思う。
+# 
+# ↓ここから、上記問題に対処するためのタネ
 
 # In[4]:
 
 h = HistData('2010/09')
 
 
-# In[5]:
+# In[14]:
 
-h.get_last_exist_datetime_recursively(np.datetime64('2010-09-03T23:00:00.000000'))
+h.get_last_exist_datetime_recursively(np.datetime64('2010-09-03T23:01:00.000000'))
 
 
 # In[6]:
 
-'''def ____get_last_exist_datetime_recursively(hist_data, datetime64_value):
-    try:
-        return h.data().loc[datetime64_value], datetime64_value
-    except:
-        #import pdb; pdb.set_trace()
-        if hist_data.data().index[0] > datetime64_value:
-            return hist_data.data().iloc[0], hist_data.data().index[0]
-        previous_datetime = datetime64_value - np.timedelta64(1, 'm')
-        return get_last_exist_datetime_recursively(hist_data, previous_datetime)
+h.get_next_exist_datetime(np.datetime64('2010-09-03T22:59:00.000000'))
 
-datetime = np.datetime64('2001-09-04 00:02:00')
-get_last_exist_datetime_recursively(h, datetime)'''
+
+# In[7]:
+
+h.get_next_exist_datetime(np.datetime64('2010-09-03T23:00:00.000000'))
+
+
+# In[13]:
+
+now = np.datetime64('2010-09-03T23:00:00.000000')
+last_datetime, _ = h.get_last_exist_datetime_recursively(now)
+next_exist_datetime, _ = h.get_next_exist_datetime(np.datetime64('2010-09-03T23:00:00.000000'))
+next_exist_datetime.name - last_datetime.name
 
 
 # In[7]:
@@ -95,6 +107,8 @@ get_last_exist_datetime_recursively(h, datetime)'''
 datetime = np.datetime64('2001-09-04 00:32:00')
 pd.DatetimeIndex([datetime]).minute[0]
 
+
+# ↑ここまで、上記問題に対処するためのタネ
 
 # In[8]:
 
@@ -137,20 +151,12 @@ class FXTrade(gym.core.Env):
         self._max_date = self._datetime2float(hist_data.dates().max())
         self._min_date = self._datetime2float(hist_data.dates().min())
         self._seed = seed_value
-        #logger.debugger = logger
-        #logger.debug(self._max_date, Loglevel.DEBUG)
-        #logger.debug(self._min_date, Loglevel.DEBUG)
 
         high = np.array([self._max_date, hist_data.max_value()])
         low = np.array([self._min_date, hist_data.min_value()])
         self.action_space = gym.spaces.Discrete(3)
         self.observation_space = gym.spaces.Box(low = low, high = high) # DateFrame, Close prise
-
-    '''def _logger(self, text, loglevel=Loglevel.DEBUG):
-        if logger.debugger is not None:
-            logger.debugger.log(text, level=loglevel)'''
         
-    #@now_datetime.setter
     def get_now_datetime_as(self, datetime_or_float):
         if datetime_or_float == 'float':
             return self._now_datetime
@@ -158,7 +164,6 @@ class FXTrade(gym.core.Env):
             dt = self._float2datetime(self._now_datetime)
             return dt
     
-    #@property
     def _set_now_datetime(self, value):
         if isinstance(value, float):
             assert self._min_date <= value, value
@@ -183,7 +188,6 @@ class FXTrade(gym.core.Env):
     
     def _datetime2float(self, datetime64_value):
         try:
-            #import pdb; pdb.set_trace()
             float_val = float(str(datetime64_value.astype('uint64'))[:10])
             return float_val
         except:
@@ -192,7 +196,6 @@ class FXTrade(gym.core.Env):
     
     def _float2datetime(self, float_timestamp):
         try:
-            #import pdb; pdb.set_trace()
             datetime_val = np.datetime64(dt.datetime.utcfromtimestamp(float_timestamp))
             return datetime_val
         except:
@@ -321,19 +324,13 @@ class FXTrade(gym.core.Env):
 
         self._set_now_datetime(self.hist_data.dates()[0])
         print(self._now_datetime)
+
         self._now_buy_price = self.hist_data.data()['Close'][0]
         self._positions = []
         print(self._seed)
         print('_reset END')
         return np.array([self._now_datetime, self._now_buy_price])
     
-
-
-# In[13]:
-
-fxt = FXTrade(1000000, 0.08, h)
-fxt._set_now_datetime(np.datetime64('2010-09-03T23:00:00.000000'))
-fxt._step(1)
 
 
 # In[14]:
