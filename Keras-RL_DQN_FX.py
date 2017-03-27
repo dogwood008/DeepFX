@@ -57,16 +57,49 @@ class HistData:
                 return self.data().iloc[0], self.data().index[0]
             previous_datetime = datetime64_value - np.timedelta64(1, 'm')
             return self.get_last_exist_datetime_recursively(previous_datetime)
+        
+    ''' 引数の日時を含む直後に存在する値を取得する '''
+    def get_next_exist_datetime(self, datetime64_value):
+        index_size = len(self.data())
+        last_index = index_size - 1
+        # KeyErrorは補足しない。範囲外にならないように学習の際に
+        # `nb_max_episode_steps` を与える必要がある
+        next_index = min(             self.data().index.get_loc(datetime64_value) + 1,              last_index)
+        return self.data().iloc[next_index], self.data().index[next_index]
 
+
+# ## 現在の問題点その3
+# 
+# 一つ心配事は、土日等休場日も学習すべきかどうかである。おそらく、４８時間全く値動きがないことを学習しても仕方ないので、これは飛ばして良いと思う。問題はその次の数分の欠測である。欠測の間は値動き無しとして学習するのが良いのか、純粋に経過時間（分）で学習するのが良いのかは、明確な答えを持っていない。一旦、閾値までの間値動きがなければ、次の値動きまでスキップするようにしようと思う。
+# 
+# ↓ここから、上記問題に対処するためのタネ
 
 # In[4]:
 
 h = HistData('2010/09')
 
 
-# In[5]:
+# In[14]:
 
-h.get_last_exist_datetime_recursively(np.datetime64('2010-09-03T23:00:00.000000'))
+h.get_last_exist_datetime_recursively(np.datetime64('2010-09-03T23:01:00.000000'))
+
+
+# In[6]:
+
+h.get_next_exist_datetime(np.datetime64('2010-09-03T22:59:00.000000'))
+
+
+# In[7]:
+
+h.get_next_exist_datetime(np.datetime64('2010-09-03T23:00:00.000000'))
+
+
+# In[13]:
+
+now = np.datetime64('2010-09-03T23:00:00.000000')
+last_datetime, _ = h.get_last_exist_datetime_recursively(now)
+next_exist_datetime, _ = h.get_next_exist_datetime(np.datetime64('2010-09-03T23:00:00.000000'))
+next_exist_datetime.name - last_datetime.name
 
 
 # In[7]:
@@ -74,6 +107,8 @@ h.get_last_exist_datetime_recursively(np.datetime64('2010-09-03T23:00:00.000000'
 datetime = np.datetime64('2001-09-04 00:32:00')
 pd.DatetimeIndex([datetime]).minute[0]
 
+
+# ↑ここまで、上記問題に対処するためのタネ
 
 # In[8]:
 
@@ -296,13 +331,6 @@ class FXTrade(gym.core.Env):
         print('_reset END')
         return np.array([self._now_datetime, self._now_buy_price])
     
-
-
-# In[13]:
-
-fxt = FXTrade(1000000, 0.08, h)
-fxt._set_now_datetime(np.datetime64('2010-09-03T23:00:00.000000'))
-fxt._step(1)
 
 
 # In[14]:
