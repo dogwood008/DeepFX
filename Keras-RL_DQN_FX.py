@@ -33,17 +33,22 @@ class HistData:
         self.csv_path = 'USDJPY.hst_.csv'
         self.csv_data = pd.read_csv(self.csv_path, index_col=0, parse_dates=True, header=0)
         self.date_range = date_range
+
     def data(self):
         if self.date_range is None:
             return self.csv_data
         else:
             return self.csv_data[self.date_range]
+
     def max_value(self):
         return self.data()[['High']].max()['High']
+
     def min_value(self):
         return self.data()[['Low']].min()['Low']
+
     def dates(self):
         return self.data().index.values
+
     def get_last_exist_datetime_recursively(self, datetime64_value):
         try:
             return self.data().loc[datetime64_value], datetime64_value
@@ -52,16 +57,6 @@ class HistData:
                 return self.data().iloc[0], self.data().index[0]
             previous_datetime = datetime64_value - np.timedelta64(1, 'm')
             return self.get_last_exist_datetime_recursively(previous_datetime)
-'''    def get_values_at(self, datetime):
-        values = None
-        try:
-            values = self.data().loc[datetime]
-        except KeyError: 
-            assert False # FXIME
-            last_exists_datetime = get_last_exists_datetime(datetime) - np.timedelta64(dminute, 'm')
-            get_values_at
-        return values
-'''
 
 
 # In[4]:
@@ -72,22 +67,6 @@ h = HistData('2010/09')
 # In[5]:
 
 h.get_last_exist_datetime_recursively(np.datetime64('2010-09-03T23:00:00.000000'))
-
-
-# In[6]:
-
-'''def ____get_last_exist_datetime_recursively(hist_data, datetime64_value):
-    try:
-        return h.data().loc[datetime64_value], datetime64_value
-    except:
-        #import pdb; pdb.set_trace()
-        if hist_data.data().index[0] > datetime64_value:
-            return hist_data.data().iloc[0], hist_data.data().index[0]
-        previous_datetime = datetime64_value - np.timedelta64(1, 'm')
-        return get_last_exist_datetime_recursively(hist_data, previous_datetime)
-
-datetime = np.datetime64('2001-09-04 00:02:00')
-get_last_exist_datetime_recursively(h, datetime)'''
 
 
 # In[7]:
@@ -137,20 +116,12 @@ class FXTrade(gym.core.Env):
         self._max_date = self._datetime2float(hist_data.dates().max())
         self._min_date = self._datetime2float(hist_data.dates().min())
         self._seed = seed_value
-        #logger.debugger = logger
-        #logger.debug(self._max_date, Loglevel.DEBUG)
-        #logger.debug(self._min_date, Loglevel.DEBUG)
 
         high = np.array([self._max_date, hist_data.max_value()])
         low = np.array([self._min_date, hist_data.min_value()])
         self.action_space = gym.spaces.Discrete(3)
         self.observation_space = gym.spaces.Box(low = low, high = high) # DateFrame, Close prise
-
-    '''def _logger(self, text, loglevel=Loglevel.DEBUG):
-        if logger.debugger is not None:
-            logger.debugger.log(text, level=loglevel)'''
         
-    #@now_datetime.setter
     def get_now_datetime_as(self, datetime_or_float):
         if datetime_or_float == 'float':
             return self._now_datetime
@@ -158,7 +129,6 @@ class FXTrade(gym.core.Env):
             dt = self._float2datetime(self._now_datetime)
             return dt
     
-    #@property
     def _set_now_datetime(self, value):
         if isinstance(value, float):
             assert self._min_date <= value, value
@@ -183,7 +153,6 @@ class FXTrade(gym.core.Env):
     
     def _datetime2float(self, datetime64_value):
         try:
-            #import pdb; pdb.set_trace()
             float_val = float(str(datetime64_value.astype('uint64'))[:10])
             return float_val
         except:
@@ -192,7 +161,6 @@ class FXTrade(gym.core.Env):
     
     def _float2datetime(self, float_timestamp):
         try:
-            #import pdb; pdb.set_trace()
             datetime_val = np.datetime64(dt.datetime.utcfromtimestamp(float_timestamp))
             return datetime_val
         except:
@@ -321,6 +289,7 @@ class FXTrade(gym.core.Env):
 
         self._set_now_datetime(self.hist_data.dates()[0])
         print(self._now_datetime)
+
         self._now_buy_price = self.hist_data.data()['Close'][0]
         self._positions = []
         print(self._seed)
