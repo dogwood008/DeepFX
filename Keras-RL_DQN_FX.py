@@ -3,7 +3,7 @@
 
 # [[Python] Keras-RLで簡単に強化学習(DQN)を試す](http://qiita.com/inoory/items/e63ade6f21766c7c2393)を参考に、エージェントを作成する。FXの自動取引を行い、利益を出すのが目標。
 
-# In[1]:
+# In[9]:
 
 import gym
 import gym.spaces
@@ -14,7 +14,7 @@ import enum
 from logging import getLogger, StreamHandler, DEBUG, INFO
 
 
-# In[2]:
+# In[10]:
 
 logger = getLogger(__name__)
 handler = StreamHandler()
@@ -26,7 +26,7 @@ class Action(enum.Enum):
     SELL = -1; STAY = 0; BUY = +1
 
 
-# In[3]:
+# In[11]:
 
 class HistData:
     def __init__(self, date_range=None):
@@ -66,58 +66,42 @@ class HistData:
         # `nb_max_episode_steps` を与える必要がある
         next_index = min(             self.data().index.get_loc(datetime64_value) + 1,              last_index)
         return self.data().iloc[next_index], self.data().index[next_index]
+    
+    ''' fromとtoの日時の差が閾値内にあるか否か '''
+    def is_datetime_diff_in_threshould(self, from_datetime, to_datetime, threshold_timedelta):
+        last_datetime, _ = h.get_last_exist_datetime_recursively(from_datetime)
+        next_exist_datetime, _ = h.get_next_exist_datetime(to_datetime)
+        delta = next_exist_datetime.name - last_datetime.name
+        return delta <= threshold_timedelta
 
 
 # ## 現在の問題点その3
 # 
 # 一つ心配事は、土日等休場日も学習すべきかどうかである。おそらく、４８時間全く値動きがないことを学習しても仕方ないので、これは飛ばして良いと思う。問題はその次の数分の欠測である。欠測の間は値動き無しとして学習するのが良いのか、純粋に経過時間（分）で学習するのが良いのかは、明確な答えを持っていない。一旦、閾値までの間値動きがなければ、次の値動きまでスキップするようにしようと思う。
-# 
-# ↓ここから、上記問題に対処するためのタネ
 
-# In[4]:
+# ### 現在の問題点その3に対する解
+# 時間のある時にきちんとチェックする必要があるが、Udacityの[Machine Learning for Trading](https://www.udacity.com/course/machine-learning-for-trading--ud501)では、休場中を特別な扱いはしていなかったような記憶がある（間違っていたら修正する必要がある）。したがって、メソッド `is_datetime_diff_in_threshould()` を作ったが、今は使わないでおくことにする。
+
+# In[12]:
 
 h = HistData('2010/09')
 
 
-# In[14]:
-
-h.get_last_exist_datetime_recursively(np.datetime64('2010-09-03T23:01:00.000000'))
-
-
-# In[6]:
-
-h.get_next_exist_datetime(np.datetime64('2010-09-03T22:59:00.000000'))
-
-
-# In[7]:
-
-h.get_next_exist_datetime(np.datetime64('2010-09-03T23:00:00.000000'))
-
-
 # In[13]:
 
-now = np.datetime64('2010-09-03T23:00:00.000000')
-last_datetime, _ = h.get_last_exist_datetime_recursively(now)
-next_exist_datetime, _ = h.get_next_exist_datetime(np.datetime64('2010-09-03T23:00:00.000000'))
-next_exist_datetime.name - last_datetime.name
+from_dt = np.datetime64('2010-09-03T23:01:00.000000')
+to_dt = np.datetime64('2010-09-03T23:00:00.000000')
+h.is_datetime_diff_in_threshould(from_dt, to_dt, dt.timedelta(days=2, hours=1, seconds=1))
 
 
-# In[7]:
-
-datetime = np.datetime64('2001-09-04 00:32:00')
-pd.DatetimeIndex([datetime]).minute[0]
-
-
-# ↑ここまで、上記問題に対処するためのタネ
-
-# In[8]:
+# In[14]:
 
 #np.datetime64('2010-09-30T23:59:00.000000000+0000').total_seconds()
 import numpy as np
 np.version.full_version
 
 
-# In[9]:
+# In[15]:
 
 ''' ポジション '''
 class Position:
@@ -138,10 +122,12 @@ class Position:
             return self.price - now_price
 
 
-# In[12]:
+# In[16]:
 
 class FXTrade(gym.core.Env):
     AMOUNT_UNIT = 50000
+    THRESHOULD_TIME_DELTA = dt.timedelta(days=1)
+    
     def __init__(self, initial_cash, spread, hist_data, seed_value=100000, logger=None):
         self.hist_data = hist_data
         self.initial_cash = initial_cash
@@ -249,7 +235,12 @@ class FXTrade(gym.core.Env):
         # 今注目している日時を更新
         logger.debug('今注目している日時を更新')
         #import pdb; pdb.set_trace()
-        now_datetime = self.get_now_datetime_as('datetime') + np.timedelta64(dminute, 'm')
+        previous_datetime = self.get_now_datetime_as('datetime')
+        now_datetime = previous_datetime + np.timedelta64(dminute, 'm')
+        
+        if now_datetime != modified_now_datetime:
+            assert self.hist_data.is_datetime_diff_in_threshould(previous, now_datetime, THRESHOULD_TIME_DELTA)
+        
         logger.debug('before')
         logger.debug(now_datetime)
         logger.debug(self._now_datetime)
@@ -433,39 +424,4 @@ for obs in cb_ep.observations.values():
     plt.plot([o[0] for o in obs])
 plt.xlabel("step")
 plt.ylabel("pos")
-
-
-# ## 現在の問題点その2
-# 2010年9月3日のデータは23:00:00迄しかなく、23:01:00を読み出そうとした時にエラーが発生している。適切にスキップする処理が必要か。
-
-# ### 現在の問題点その2に対する解
-# 
-# その日時におけるデータが存在しなければ、その直前のデータを参照すれば良い。つまり、 `23:01:00` の代わりに `23:00:00` を返せばこのエラーは出なくなる。与えた日時に直近でデータが存在する過去の日時とその時の価格のセットを返すメソッド `get_last_exist_datetime_recursively()` を作成した。
-# 
-# ２０１０年９月３日は平日（金曜日）、また米国の祝日でもなく、夏時間の切り替え日でもなかった。なぜデータが欠損しているかはわからない。元データを見るとこのまま土日へ突入したようである。
-# 
-# ```
-# 2005-09-02 22:57:00,109.63,109.64,109.63,109.63,6.0
-# 2005-09-02 22:58:00,109.64,109.65,109.63,109.63,8.0
-# 2005-09-02 22:59:00,109.63,109.63,109.63,109.63,2.0
-# 2005-09-05 00:02:00,109.63,109.63,109.63,109.63,2.0
-# 2005-09-05 00:09:00,109.7,109.7,109.7,109.7,2.0
-# 2005-09-05 00:11:00,109.69,109.69,109.69,109.69,2.0
-# 2005-09-05 00:14:00,109.7,109.74,109.69,109.69,5.0
-# 2005-09-05 00:16:00,109.7,109.71,109.7,109.71,3.0
-# 2005-09-05 00:17:00,109.7,109.71,109.7,109.7,4.0
-# 2005-09-05 00:18:00,109.71,109.71,109.7,109.7,3.0
-# 2005-09-05 00:20:00,109.71,109.71,109.7,109.7,5.0
-# ```
-# 
-# 一つ心配事は、土日等休場日も学習すべきかどうかである。おそらく、４８時間全く値動きがないことを学習しても仕方ないので、これは飛ばして良いと思う。問題はその次の数分の欠測である。欠測の間は値動き無しとして学習するのが良いのか、純粋に経過時間（分）で学習するのが良いのかは、明確な答えを持っていない。一旦、閾値までの間値動きがなければ、次の値動きまでスキップするようにしようと思う。
-
-# In[ ]:
-
-h.data()['2010-09-03']
-
-
-# In[ ]:
-
-
 
