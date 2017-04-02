@@ -3,7 +3,7 @@
 
 # [[Python] Keras-RLで簡単に強化学習(DQN)を試す](http://qiita.com/inoory/items/e63ade6f21766c7c2393)を参考に、エージェントを作成する。FXの自動取引を行い、利益を出すのが目標。
 
-# In[9]:
+# In[1]:
 
 import gym
 import gym.spaces
@@ -14,7 +14,7 @@ import enum
 from logging import getLogger, StreamHandler, DEBUG, INFO
 
 
-# In[10]:
+# In[2]:
 
 logger = getLogger(__name__)
 handler = StreamHandler()
@@ -26,7 +26,7 @@ class Action(enum.Enum):
     SELL = -1; STAY = 0; BUY = +1
 
 
-# In[11]:
+# In[3]:
 
 class HistData:
     def __init__(self, date_range=None):
@@ -49,31 +49,66 @@ class HistData:
     def dates(self):
         return self.data().index.values
 
-    def get_last_exist_datetime_recursively(self, datetime64_value):
+    ''' 引数の日時がデータフレームに含まれるか '''
+    def has_datetime(self, datetime64_value):
         try:
-            return self.data().loc[datetime64_value], datetime64_value
+            h.data().loc[datetime64_value]
+            return True
         except KeyError:
-            if self.data().index[0] > datetime64_value:
-                return self.data().iloc[0], self.data().index[0]
-            previous_datetime = datetime64_value - np.timedelta64(1, 'm')
-            return self.get_last_exist_datetime_recursively(previous_datetime)
+            return False
+
+    def _get_nearist_index(self, before_or_after, datetime):
+        if before_or_after == 'before':
+            offset = -1
+        else:
+            offset = 0
+        index = max(h.data().index.searchsorted(datetime) + offset, 0)
+        return self.data().ix[self.data().index[index]]
+
+    ''' 引数の日時を含まない直前に存在する値を取得する '''        
+    def get_last_exist_datetime(self, datetime64_value):
+        return self._get_nearist_index('before', datetime64_value)
         
     ''' 引数の日時を含む直後に存在する値を取得する '''
     def get_next_exist_datetime(self, datetime64_value):
-        index_size = len(self.data())
-        last_index = index_size - 1
-        # KeyErrorは補足しない。範囲外にならないように学習の際に
-        # `nb_max_episode_steps` を与える必要がある
-        next_index = min(             self.data().index.get_loc(datetime64_value) + 1,              last_index)
-        return self.data().iloc[next_index], self.data().index[next_index]
+        return self._get_nearist_index('after', datetime64_value)
     
     ''' fromとtoの日時の差が閾値内にあるか否か '''
     def is_datetime_diff_in_threshould(self, from_datetime, to_datetime, threshold_timedelta):
-        last_datetime, _ = h.get_last_exist_datetime_recursively(from_datetime)
-        next_exist_datetime, _ = h.get_next_exist_datetime(to_datetime)
+        last_datetime = h.get_last_exist_datetime(from_datetime)
+        next_exist_datetime = h.get_next_exist_datetime(to_datetime)
         delta = next_exist_datetime.name - last_datetime.name
         return delta <= threshold_timedelta
 
+
+# In[4]:
+
+h = HistData('2010/09')
+
+
+# In[5]:
+
+non_exist_dt = np.datetime64('2010-09-04T16:01:00')
+h.get_last_exist_datetime(non_exist_dt)
+
+
+# In[6]:
+
+exist_dt = np.datetime64('2010-09-06T16:01:00')
+h.get_last_exist_datetime(exist_dt)
+
+
+# In[7]:
+
+print(h.has_datetime(non_exist_dt))
+print(h.has_datetime(exist_dt))
+
+
+# ## 現在の問題点その4
+# 試しに学習させたところ、 `HistData.get_last_exist_datetime_recursively()` に `2010-09-04T16:01:00` を与えるとスタックオーバーフローで終了するバグがあった。
+
+# ### 現在の問題点その4に対する解
+# もっとシンプルな実装に変更する。
 
 # ## 現在の問題点その3
 # 
@@ -87,21 +122,21 @@ class HistData:
 h = HistData('2010/09')
 
 
-# In[13]:
+# In[8]:
 
 from_dt = np.datetime64('2010-09-03T23:01:00.000000')
 to_dt = np.datetime64('2010-09-03T23:00:00.000000')
 h.is_datetime_diff_in_threshould(from_dt, to_dt, dt.timedelta(days=2, hours=1, seconds=1))
 
 
-# In[14]:
+# In[9]:
 
 #np.datetime64('2010-09-30T23:59:00.000000000+0000').total_seconds()
 import numpy as np
 np.version.full_version
 
 
-# In[15]:
+# In[10]:
 
 ''' ポジション '''
 class Position:
@@ -122,7 +157,7 @@ class Position:
             return self.price - now_price
 
 
-# In[16]:
+# In[15]:
 
 class FXTrade(gym.core.Env):
     AMOUNT_UNIT = 50000
@@ -237,10 +272,7 @@ class FXTrade(gym.core.Env):
         #import pdb; pdb.set_trace()
         previous_datetime = self.get_now_datetime_as('datetime')
         now_datetime = previous_datetime + np.timedelta64(dminute, 'm')
-        
-        if now_datetime != modified_now_datetime:
-            assert self.hist_data.is_datetime_diff_in_threshould(previous, now_datetime, THRESHOULD_TIME_DELTA)
-        
+                
         logger.debug('before')
         logger.debug(now_datetime)
         logger.debug(self._now_datetime)
@@ -250,7 +282,12 @@ class FXTrade(gym.core.Env):
         logger.debug(now_datetime)
         logger.debug(self._now_datetime)
         # その時点における値群
-        now_values, modified_now_datetime = self.hist_data.get_last_exist_datetime_recursively(now_datetime)
+        if h.has_datetime(now_datetime):
+            modified_now_datetime = now_datetime
+        else:
+            modified_now_datetime = get_last_exist_datetime(now_datetime)
+        now_values = h.data().loc[modified_now_datetime]
+        
         
         now_buy_price = now_values['Close']
         self._now_buy_price = now_buy_price
@@ -324,7 +361,7 @@ class FXTrade(gym.core.Env):
     
 
 
-# In[14]:
+# In[16]:
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
