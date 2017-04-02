@@ -341,8 +341,6 @@ class FXTrade(gym.core.Env):
         if done:
             print('now_datetime: %s' % now_datetime)
             print('self.hist_data.dates()[-1]: %s' % self.hist_data.dates()[-1])
-            assert False #FIXME
-
 
         # 報酬は現金と総含み益
         reward = self._total_unrealized_gain + self.cash
