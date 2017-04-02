@@ -286,7 +286,7 @@ class FXTrade(gym.core.Env):
             modified_now_datetime = now_datetime
         else:
             modified_now_datetime = get_last_exist_datetime(now_datetime)
-        now_values = h.data().loc[modified_now_datetime]
+        now_values = h.data().loc[modified_now_datetime.name]
         
         
         now_buy_price = now_values['Close']
