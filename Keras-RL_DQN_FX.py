@@ -12,15 +12,22 @@ import pandas as pd
 import datetime as dt
 import enum
 from logging import getLogger, StreamHandler, DEBUG, INFO
+import time
 
 
 # In[2]:
 
 logger = getLogger(__name__)
 handler = StreamHandler()
-handler.setLevel(INFO)
-logger.setLevel(INFO)
+handler.setLevel(DEBUG)
+logger.setLevel(DEBUG)
 logger.addHandler(handler)
+
+class DebugTools:
+    def now():
+        return dt.datetime.now() + dt.timedelta(hours=9)
+    def now_str():    
+        return DebugTools.now().strftime('%y/%m/%d %H:%M:%S')
 
 class Action(enum.Enum):
     SELL = -1; STAY = 0; BUY = +1
@@ -117,26 +124,26 @@ print(h.has_datetime(exist_dt))
 # ### 現在の問題点その3に対する解
 # 時間のある時にきちんとチェックする必要があるが、Udacityの[Machine Learning for Trading](https://www.udacity.com/course/machine-learning-for-trading--ud501)では、休場中を特別な扱いはしていなかったような記憶がある（間違っていたら修正する必要がある）。したがって、メソッド `is_datetime_diff_in_threshould()` を作ったが、今は使わないでおくことにする。
 
-# In[12]:
+# In[8]:
 
 h = HistData('2010/09')
 
 
-# In[8]:
+# In[9]:
 
 from_dt = np.datetime64('2010-09-03T23:01:00.000000')
 to_dt = np.datetime64('2010-09-03T23:00:00.000000')
 h.is_datetime_diff_in_threshould(from_dt, to_dt, dt.timedelta(days=2, hours=1, seconds=1))
 
 
-# In[9]:
+# In[10]:
 
 #np.datetime64('2010-09-30T23:59:00.000000000+0000').total_seconds()
 import numpy as np
 np.version.full_version
 
 
-# In[10]:
+# In[11]:
 
 ''' ポジション '''
 class Position:
@@ -157,7 +164,7 @@ class Position:
             return self.price - now_price
 
 
-# In[15]:
+# In[12]:
 
 class FXTrade(gym.core.Env):
     AMOUNT_UNIT = 50000
@@ -334,8 +341,6 @@ class FXTrade(gym.core.Env):
         if done:
             print('now_datetime: %s' % now_datetime)
             print('self.hist_data.dates()[-1]: %s' % self.hist_data.dates()[-1])
-            assert False #FIXME
-
 
         # 報酬は現金と総含み益
         reward = self._total_unrealized_gain + self.cash
@@ -361,7 +366,7 @@ class FXTrade(gym.core.Env):
     
 
 
-# In[16]:
+# In[13]:
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
@@ -395,7 +400,17 @@ dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmu
                target_model_update=1e-2, policy=policy)
 dqn.compile(Adam(lr=1e-3), metrics=['mae'])
 
-history = dqn.fit(env, nb_steps=50000, visualize=False, verbose=2, nb_max_episode_steps=None)
+is_for_time_measurement = True
+if is_for_time_measurement:
+    start = time.time()
+    print(DebugTools.now_str())
+    minutes = 2591940/60 # 2591940secs = '2010-09-30 23:59:00' - '2010-09-01 00:00:00'
+    history = dqn.fit(env, nb_steps=minutes, visualize=False, verbose=2, nb_max_episode_steps=None)
+    elapsed_time = time.time() - start
+    print(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
+    print(DebugTools.now_str())
+else:
+    history = dqn.fit(env, nb_steps=50000, visualize=False, verbose=2, nb_max_episode_steps=None)
 #学習の様子を描画したいときは、Envに_render()を実装して、visualize=True にします,
 
 
@@ -410,27 +425,17 @@ history = dqn.fit(env, nb_steps=50000, visualize=False, verbose=2, nb_max_episod
 # 
 # ソース: https://github.com/matthiasplappert/keras-rl/blob/master/rl/core.py#L280
 
-# In[ ]:
-
-len(h.data()['2010/09'])
-
-
-# In[ ]:
+# In[14]:
 
 model.save('Keras-RL_DQN_FX_model.h5')
 
 
-# In[ ]:
+# In[15]:
 
-history
-
-
-# In[ ]:
-
-model.save('Keras-RL_DQN_FX_weights.h5')
+model.save_weights('Keras-RL_DQN_FX_weights.h5')
 
 
-# In[ ]:
+# In[16]:
 
 import rl.callbacks
 class EpisodeLogger(rl.callbacks.Callback):
@@ -450,15 +455,19 @@ class EpisodeLogger(rl.callbacks.Callback):
         self.rewards[episode].append(logs['reward'])
         self.actions[episode].append(logs['action'])
 
-cb_ep = EpisodeLogger()
-dqn.test(env, nb_episodes=10, visualize=False, callbacks=[cb_ep])
+
+# In[17]:
+
+if False:
+    cb_ep = EpisodeLogger()
+    dqn.test(env, nb_episodes=10, visualize=False, callbacks=[cb_ep])
 
 
-get_ipython().magic('matplotlib inline')
-import matplotlib.pyplot as plt
+    get_ipython().magic('matplotlib inline')
+    import matplotlib.pyplot as plt
 
-for obs in cb_ep.observations.values():
-    plt.plot([o[0] for o in obs])
-plt.xlabel("step")
-plt.ylabel("pos")
+    for obs in cb_ep.observations.values():
+        plt.plot([o[0] for o in obs])
+    plt.xlabel("step")
+    plt.ylabel("pos")
 
