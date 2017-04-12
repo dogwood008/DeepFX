@@ -3,7 +3,7 @@
 
 # [[Python] Keras-RLで簡単に強化学習(DQN)を試す](http://qiita.com/inoory/items/e63ade6f21766c7c2393)を参考に、エージェントを作成する。FXの自動取引を行い、利益を出すのが目標。
 
-# In[42]:
+# In[1]:
 
 import gym
 import gym.spaces
@@ -19,7 +19,7 @@ import warnings
 import itertools
 
 
-# In[43]:
+# In[2]:
 
 logger = getLogger(__name__)
 handler = StreamHandler()
@@ -37,7 +37,7 @@ class Action(enum.Enum):
     SELL = -1; STAY = 0; BUY = +1
 
 
-# In[44]:
+# In[3]:
 
 class HistData:
     def __init__(self, date_range=None):
@@ -92,7 +92,7 @@ class HistData:
         return delta <= threshold_timedelta
 
 
-# In[45]:
+# In[4]:
 
 ''' ポジション '''
 class Position:
@@ -113,7 +113,7 @@ class Position:
             return self.price - now_price
 
 
-# In[46]:
+# In[5]:
 
 class FXTrade(gym.core.Env):
     AMOUNT_UNIT = 50000
@@ -316,7 +316,7 @@ class FXTrade(gym.core.Env):
     
 
 
-# In[66]:
+# In[6]:
 
 import rl.callbacks
 class ModelSaver(rl.callbacks.TrainEpisodeLogger):
@@ -369,12 +369,52 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
         
 
 
-# In[56]:
+# In[7]:
 
 h = HistData('2010/09/01')
 
 
-# In[67]:
+# In[8]:
+
+import tensorflow as tf
+''' 元のTensorBoardだと、value.item()で死ぬのでvalueに変更。変更点はここだけ。 '''
+class MyTensorBoard(keras.callbacks.TensorBoard):
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+
+        if self.validation_data and self.histogram_freq:
+            if epoch % self.histogram_freq == 0:
+                # TODO: implement batched calls to sess.run
+                # (current call will likely go OOM on GPU)
+                if self.model.uses_learning_phase:
+                    cut_v_data = len(self.model.inputs)
+                    val_data = self.validation_data[:cut_v_data] + [0]
+                    tensors = self.model.inputs + [K.learning_phase()]
+                else:
+                    val_data = self.validation_data
+                    tensors = self.model.inputs
+                feed_dict = dict(zip(tensors, val_data))
+                result = self.sess.run([self.merged], feed_dict=feed_dict)
+                summary_str = result[0]
+                self.writer.add_summary(summary_str, epoch)
+
+        if self.embeddings_freq and self.embeddings_logs:
+            if epoch % self.embeddings_freq == 0:
+                for log in self.embeddings_logs:
+                    self.saver.save(self.sess, log, epoch)
+
+        for name, value in logs.items():
+            if name in ['batch', 'size']:
+                continue
+            summary = tf.Summary()
+            summary_value = summary.value.add()
+            summary_value.simple_value = value # Modified from: value.item()
+            summary_value.tag = name
+            self.writer.add_summary(summary, epoch)
+        self.writer.flush()
+
+
+# In[9]:
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
@@ -386,7 +426,6 @@ from rl.memory import SequentialMemory
 
 log_directory = './log'
 model_directory = './model'
-#model_filename = 'Keras-RL_DQN_FX_model{epoch:02d}-loss{loss:.2f}-acc{acc:.2f}-vloss{val_loss:.2f}-vacc{val_acc:.2f}.hdf5'
 model_filename = 'Keras-RL_DQN_FX_model_episode{episode:05d}_loss{loss:e}.hdf5'
 weights_filename = 'Keras-RL_DQN_FX_weights.h5'
 
@@ -414,7 +453,7 @@ dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmu
                target_model_update=1e-2, policy=policy)
 dqn.compile(Adam(lr=1e-3), metrics=['mae'])
 
-tensor_board_callback = keras.callbacks.TensorBoard(log_dir=log_directory, histogram_freq=1)
+tensor_board_callback = MyTensorBoard(log_dir=log_directory, histogram_freq=1)
 check_point_callback = keras.callbacks.ModelCheckpoint(filepath = os.path.join(model_directory, model_filename),                                        monitor='metrics["loss"]', verbose=1, save_best_only=True, mode='auto')
 
 model_saver_callback = ModelSaver(model_filename)
@@ -425,7 +464,7 @@ if is_for_time_measurement:
     print(DebugTools.now_str())
     #minutes = 2591940/60 # 2591940secs = '2010-09-30 23:59:00' - '2010-09-01 00:00:00'
     minutes = (60 * 24 - 1) * 2 # 2days
-    history = dqn.fit(env, nb_steps=minutes, visualize=False, verbose=2, nb_max_episode_steps=None,                      callbacks=[model_saver_callback])
+    history = dqn.fit(env, nb_steps=minutes, visualize=False, verbose=2, nb_max_episode_steps=None,                      callbacks=[model_saver_callback, tensor_board_callback])
     elapsed_time = time.time() - start
     print(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
     print(DebugTools.now_str())
@@ -434,7 +473,7 @@ else:
 #学習の様子を描画したいときは、Envに_render()を実装して、visualize=True にします,
 
 
-# In[50]:
+# In[10]:
 
 class EpisodeLogger(rl.callbacks.Callback):
     def __init__(self):
@@ -454,7 +493,7 @@ class EpisodeLogger(rl.callbacks.Callback):
         self.actions[episode].append(logs['action'])
 
 
-# In[51]:
+# In[11]:
 
 if False:
     cb_ep = EpisodeLogger()
