@@ -3,7 +3,7 @@
 
 # [[Python] Keras-RLで簡単に強化学習(DQN)を試す](http://qiita.com/inoory/items/e63ade6f21766c7c2393)を参考に、エージェントを作成する。FXの自動取引を行い、利益を出すのが目標。
 
-# In[1]:
+# In[ ]:
 
 import gym
 import gym.spaces
@@ -19,7 +19,7 @@ import warnings
 import itertools
 
 
-# In[2]:
+# In[ ]:
 
 logger = getLogger(__name__)
 handler = StreamHandler()
@@ -37,7 +37,7 @@ class Action(enum.Enum):
     SELL = -1; STAY = 0; BUY = +1
 
 
-# In[3]:
+# In[ ]:
 
 class HistData:
     def __init__(self, date_range=None):
@@ -92,7 +92,7 @@ class HistData:
         return delta <= threshold_timedelta
 
 
-# In[4]:
+# In[ ]:
 
 ''' ポジション '''
 class Position:
@@ -113,7 +113,7 @@ class Position:
             return self.price - now_price
 
 
-# In[5]:
+# In[ ]:
 
 class FXTrade(gym.core.Env):
     AMOUNT_UNIT = 50000
@@ -128,6 +128,7 @@ class FXTrade(gym.core.Env):
         self._max_date = self._datetime2float(hist_data.dates().max())
         self._min_date = self._datetime2float(hist_data.dates().min())
         self._seed = seed_value
+        np.random.seed(seed_value)
 
         high = np.array([self._max_date, hist_data.max_value()])
         low = np.array([self._min_date, hist_data.min_value()])
@@ -156,7 +157,6 @@ class FXTrade(gym.core.Env):
             
     def setseed(self, seed_value):
         self._seed = seed_value
-        np.random.seed(self._seed)
         print('Set seed value: %d' % self._seed)
         return seed_value
         
@@ -316,42 +316,63 @@ class FXTrade(gym.core.Env):
     
 
 
-# In[6]:
+# In[ ]:
 
 import rl.callbacks
 class ModelSaver(rl.callbacks.TrainEpisodeLogger):
-    def __init__(self, filepath, monitor='loss', verbose=1, save_weights_only=True):
-        self.min_monitor_value = None
+    def __init__(self, filepath, monitor='loss', verbose=1, save_best_only=True, mode='min', save_weights_only=False):
+        if filepath is None:
+            raise ValueError('Give value to filepath. (Given: %s)' % filepath)
+        self.best_monitor_value = None
         self.filepath = filepath
         self.monitor = monitor
         self.verbose = verbose
-        #self.save_best_only = save_best_only
+        self.save_best_only = save_best_only
+        self.mode = mode
         self.save_weights_only = save_weights_only
+        if mode not in ('min', 'max'):
+            raise ValueError("Give 'min' or 'max' to mode. (Given: %s)" % mode)
+        self.mode = mode
+        
         super().__init__()
 
     def on_episode_end(self, episode, logs):
         print('========== Model Saver output ==============')
-        loss_value = self._formatted_metrics(episode)[self.monitor]
-        print('loss_value: %f' % loss_value)
-        if self.min_monitor_value is None or loss_value < self.min_monitor_value:
-            previous_value = self.min_monitor_value
-            self.min_monitor_value = loss_value
-            self._save_model(previous_monitor=previous_value, loss=loss_value, episode=episode)
-        print('min monitor loss: %f' % self.min_monitor_value)
+        monitor_value = self._formatted_metrics(episode)[self.monitor]
+
+        #try:
+        print('%s value: %e' % (self.monitor, monitor_value))
+        if not self.save_best_only:
+            self._save_model(previous_monitor=monitor_value, loss=monitor_value, episode=episode)            
+        elif self.best_monitor_value is None or self._is_this_episode_improved(monitor_value):
+            previous_value = self.best_monitor_value
+            self.best_monitor_value = monitor_value
+            self._save_model(previous_monitor=previous_value, loss=monitor_value, episode=episode)
+            print('%s %s value: %e' % (self.mode, self.monitor, self.best_monitor_value))
+        #except:
+        #    print('Not a float value given.')
         print('========== /Model Saver output =============')
         super().on_episode_end(episode, logs)
 
-    def _save_model(self, previous_monitor, loss, episode):
-        filepath = self.filepath.format(loss=loss, episode=episode)
+    def _is_this_episode_improved(self, monitor_value):
+        if self.mode == 'min':
+            return monitor_value < self.best_monitor_value
+        else:
+            return monitor_value > self.best_monitor_value
+        
+    def _save_model(self, previous_monitor, **kwargs):
+        filepath = self.filepath.format_map(kwargs)
         if self.verbose > 0:
-            print('Step %05d: model improved from %0.5f to %0.5f,'
+            print("Step %05d: model improved\n  from %e\n    to %e,"
                   ' saving model to %s'
                   % (self.step, previous_monitor or 0.0,
-                     self.min_monitor_value or 0.0, filepath))
+                     self.best_monitor_value or 0.0, filepath))
         if self.save_weights_only:
-            self.model.save_weights(filepath, overwrite=True)
+            self.model.save_weights(filepath + '.hdf5', overwrite=True)
+            print('Save weights to %s has done.' % filepath)
         else:
-            raise NotImplementedError
+            self.model.model.save(filepath + '.h5', overwrite=True)
+            print('Save model to %s has done.' % filepath)
 
     def _formatted_metrics(self, episode):
         # Format all metrics.
@@ -363,18 +384,21 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
                 try:
                     value = np.nanmean(metrics[:, idx])
                 except Warning:
-                    value = '--'
+                    if name == 'loss':
+                        value = float('inf')
+                    else:
+                        value = '--'
                 metrics_variables += [name, value]
         return dict(itertools.zip_longest(*[iter(metrics_variables)] * 2, fillvalue=""))
         
 
 
-# In[7]:
+# In[ ]:
 
 h = HistData('2010/09/01')
 
 
-# In[8]:
+# In[ ]:
 
 import tensorflow as tf
 ''' 元のTensorBoardだと、value.item()で死ぬのでvalueに変更。変更点はここだけ。 '''
@@ -414,7 +438,7 @@ class MyTensorBoard(keras.callbacks.TensorBoard):
         self.writer.flush()
 
 
-# In[9]:
+# In[ ]:
 
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
@@ -424,46 +448,61 @@ from rl.agents.dqn import DQNAgent
 from rl.policy import EpsGreedyQPolicy
 from rl.memory import SequentialMemory
 
+def relative_path(directory, filename):
+    if directory is None or filename is None:
+        return None
+    return os.path.join(directory, filename)
+
 log_directory = './log'
-model_directory = './model'
-model_filename = 'Keras-RL_DQN_FX_model_episode{episode:05d}_loss{loss:e}.hdf5'
+model_directory = './models'
+model_filename = 'Keras-RL_DQN_FX_model_loss{loss:e}_episode{episode:05d}'
+prepared_model_filename = None
 weights_filename = 'Keras-RL_DQN_FX_weights.h5'
+load_model_path = relative_path(model_directory, prepared_model_filename)
+save_model_path = relative_path(model_directory, model_filename)
 
 env = FXTrade(1000000, 0.08, h)
 nb_actions = env.action_space.n
 
-# DQNのネットワーク定義
-model = Sequential()
-model.add(Flatten(input_shape=(1,) + env.observation_space.shape))
-model.add(Dense(16))
-model.add(Activation('relu'))
-model.add(Dense(16))
-model.add(Activation('relu'))
-model.add(Dense(16))
-model.add(Activation('relu'))
-model.add(Dense(nb_actions))
-model.add(Activation('linear'))
+if load_model_path is None:
+    # DQNのネットワーク定義
+    model = Sequential()
+    model.add(Flatten(input_shape=(1,) + env.observation_space.shape))
+#    model.add(Dense(4))
+#    model.add(Activation('relu'))
+#    model.add(Dense(4))
+#    model.add(Activation('relu'))
+    model.add(Dense(nb_actions))
+    model.add(Activation('relu'))
+else:
+    model = keras.models.load_model(load_model_path)
 print(model.summary())
 
 # experience replay用のmemory
-memory = SequentialMemory(limit=50000, window_length=1)
+memory = SequentialMemory(limit=500000, window_length=1)
 # 行動方策はオーソドックスなepsilon-greedy。ほかに、各行動のQ値によって確率を決定するBoltzmannQPolicyが利用可能
 policy = EpsGreedyQPolicy(eps=0.1) 
 dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=100,
-               target_model_update=1e-2, policy=policy)
-dqn.compile(Adam(lr=1e-3), metrics=['mae'])
+               policy=policy)
+               #target_model_update=1e-2, policy=policy)
+#dqn.compile(Adam(lr=1e-3))
+dqn.compile('adam')
 
-tensor_board_callback = MyTensorBoard(log_dir=log_directory, histogram_freq=1)
-check_point_callback = keras.callbacks.ModelCheckpoint(filepath = os.path.join(model_directory, model_filename),                                        monitor='metrics["loss"]', verbose=1, save_best_only=True, mode='auto')
+tensor_board_callback = MyTensorBoard(log_dir=log_directory, histogram_freq=1, embeddings_layer_names=True, write_graph=True)
+check_point_callback = keras.callbacks.ModelCheckpoint(filepath = os.path.join(model_directory, model_filename),                                        monitor='metrics["mse"]', verbose=1, save_best_only=True, mode='auto')
 
-model_saver_callback = ModelSaver(model_filename)
+model_saver_callback = ModelSaver(save_model_path)
 
 is_for_time_measurement = True
 if is_for_time_measurement:
     start = time.time()
     print(DebugTools.now_str())
     #minutes = 2591940/60 # 2591940secs = '2010-09-30 23:59:00' - '2010-09-01 00:00:00'
-    minutes = (60 * 24 - 1) * 2 # 2days
+    #minutes = (60 * 24 - 1) * 1# a day * 1
+    minutes = (60 * 24 - 1) * 10# a day * 10
+    #minutes = (60 * 24 - 1) * 2 # 2days
+    #minutes = (60 * 24 - 1) * 10 * 9999999 # 10days * 9999999 Epochs
+    #minutes = (60 * 24 - 1) * 30 * 9999999# 30days * 9999999 Epochs
     history = dqn.fit(env, nb_steps=minutes, visualize=False, verbose=2, nb_max_episode_steps=None,                      callbacks=[model_saver_callback, tensor_board_callback])
     elapsed_time = time.time() - start
     print(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
@@ -473,7 +512,7 @@ else:
 #学習の様子を描画したいときは、Envに_render()を実装して、visualize=True にします,
 
 
-# In[10]:
+# In[ ]:
 
 class EpisodeLogger(rl.callbacks.Callback):
     def __init__(self):
@@ -493,7 +532,7 @@ class EpisodeLogger(rl.callbacks.Callback):
         self.actions[episode].append(logs['action'])
 
 
-# In[11]:
+# In[ ]:
 
 if False:
     cb_ep = EpisodeLogger()
@@ -507,4 +546,24 @@ if False:
         plt.plot([o[0] for o in obs])
     plt.xlabel("step")
     plt.ylabel("pos")
+
+
+# In[ ]:
+
+print(history.__dict__)
+
+
+# In[ ]:
+
+dqn.metrics_names
+
+
+# In[ ]:
+
+dqn.trainable_model.metrics_names
+
+
+# In[ ]:
+
+model_saver_callback.metrics
 
