@@ -459,7 +459,7 @@ def relative_path(directory, filename):
 
 log_directory = './log'
 model_directory = './models'
-model_filename = 'Keras-RL_DQN_FX_model_loss{loss:e}_episode{episode:05d}'
+model_filename = 'Keras-RL_DQN_FX_model_meanq{mean_q:e}_episode{episode:05d}'
 prepared_model_filename = None
 weights_filename = 'Keras-RL_DQN_FX_weights.h5'
 load_model_path = relative_path(model_directory, prepared_model_filename)
@@ -495,7 +495,7 @@ dqn.compile('adam')
 tensor_board_callback = MyTensorBoard(log_dir=log_directory, histogram_freq=1, embeddings_layer_names=True, write_graph=True)
 check_point_callback = keras.callbacks.ModelCheckpoint(filepath = os.path.join(model_directory, model_filename),                                        monitor='metrics["mse"]', verbose=1, save_best_only=True, mode='auto')
 
-model_saver_callback = ModelSaver(save_model_path)
+model_saver_callback = ModelSaver(save_model_path, monitor='mean_q', mode='max')
 
 is_for_time_measurement = True
 if is_for_time_measurement:
