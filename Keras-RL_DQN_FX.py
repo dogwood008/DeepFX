@@ -342,12 +342,15 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
 
         #try:
         print('%s value: %e' % (self.monitor, monitor_value))
+        values = {'episode': episode, self.monitor: monitor_value}
         if not self.save_best_only:
-            self._save_model(previous_monitor=monitor_value, loss=monitor_value, episode=episode)            
+            values['previous_monitor'] = monitor_value
+            self._save_model(values)            
         elif self.best_monitor_value is None or self._is_this_episode_improved(monitor_value):
             previous_value = self.best_monitor_value
             self.best_monitor_value = monitor_value
-            self._save_model(previous_monitor=previous_value, loss=monitor_value, episode=episode)
+            values['previous_monitor'] = previous_value
+            self._save_model(values)
             print('%s %s value: %e' % (self.mode, self.monitor, self.best_monitor_value))
         #except:
         #    print('Not a float value given.')
@@ -360,7 +363,8 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
         else:
             return monitor_value > self.best_monitor_value
         
-    def _save_model(self, previous_monitor, **kwargs):
+    def _save_model(self, kwargs):
+        previous_monitor = kwargs['previous_monitor']
         filepath = self.filepath.format_map(kwargs)
         if self.verbose > 0:
             print("Step %05d: model improved\n  from %e\n    to %e,"
@@ -455,7 +459,7 @@ def relative_path(directory, filename):
 
 log_directory = './log'
 model_directory = './models'
-model_filename = 'Keras-RL_DQN_FX_model_loss{loss:e}_episode{episode:05d}'
+model_filename = 'Keras-RL_DQN_FX_model_meanq{mean_q:e}_episode{episode:05d}'
 prepared_model_filename = None
 weights_filename = 'Keras-RL_DQN_FX_weights.h5'
 load_model_path = relative_path(model_directory, prepared_model_filename)
@@ -491,7 +495,7 @@ dqn.compile('adam')
 tensor_board_callback = MyTensorBoard(log_dir=log_directory, histogram_freq=1, embeddings_layer_names=True, write_graph=True)
 check_point_callback = keras.callbacks.ModelCheckpoint(filepath = os.path.join(model_directory, model_filename),                                        monitor='metrics["mse"]', verbose=1, save_best_only=True, mode='auto')
 
-model_saver_callback = ModelSaver(save_model_path)
+model_saver_callback = ModelSaver(save_model_path, monitor='mean_q', mode='max')
 
 is_for_time_measurement = True
 if is_for_time_measurement:
