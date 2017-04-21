@@ -149,5 +149,5 @@ config.rst
 
 # Project original
 USDJPY.hst_.csv
-log/
-models/
+logs
+models
