@@ -457,7 +457,7 @@ def relative_path(directory, filename):
         return None
     return os.path.join(directory, filename)
 
-log_directory = './log'
+log_directory = './logs'
 model_directory = './models'
 model_filename = 'Keras-RL_DQN_FX_model_meanq{mean_q:e}_episode{episode:05d}'
 prepared_model_filename = None
