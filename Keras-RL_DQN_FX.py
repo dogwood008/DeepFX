@@ -44,6 +44,9 @@ class HistData:
         self.csv_path = 'USDJPY.hst_.csv'
         self.csv_data = pd.read_csv(self.csv_path, index_col=0, parse_dates=True, header=0)
         self.date_range = date_range
+        
+    def set_date_range(self, date_range):
+        self.date_range = date_range
 
     def data(self):
         if self.date_range is None:
@@ -399,11 +402,6 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
 
 # In[ ]:
 
-h = HistData('2010/09/01')
-
-
-# In[ ]:
-
 import tensorflow as tf
 ''' 元のTensorBoardだと、value.item()で死ぬのでvalueに変更。変更点はここだけ。 '''
 class MyTensorBoard(keras.callbacks.TensorBoard):
@@ -452,68 +450,115 @@ from rl.agents.dqn import DQNAgent
 from rl.policy import EpsGreedyQPolicy
 from rl.memory import SequentialMemory
 
-def relative_path(directory, filename):
-    if directory is None or filename is None:
-        return None
-    return os.path.join(directory, filename)
+class DeepFX:
+    def __init__(self, env, mode, nb_steps=None,               log_directory='./logs', model_directory='./models',              model_filename='Keras-RL_DQN_FX_model_meanq{mean_q:e}_episode{episode:05d}',              prepared_model_filename=None,              weights_filename='Keras-RL_DQN_FX_weights.h5',):
+        self._log_directory = log_directory
+        self._model_directory = model_directory
+        self._model_filename = model_filename
+        self._prepared_model_filename = prepared_model_filename
+        self._weights_filename = weights_filename
+        self._load_model_path = self._relative_path(model_directory, prepared_model_filename) 
+        self._save_model_path = self._relative_path(model_directory, model_filename)
+        self._env = env
 
-log_directory = './logs'
-model_directory = './models'
-model_filename = 'Keras-RL_DQN_FX_model_meanq{mean_q:e}_episode{episode:05d}'
-prepared_model_filename = None
-weights_filename = 'Keras-RL_DQN_FX_weights.h5'
-load_model_path = relative_path(model_directory, prepared_model_filename)
-save_model_path = relative_path(model_directory, model_filename)
+    def setup(self):
+        self._agent, self._model, self._memory, self._policy = self._initialize_agent()
+        self._agent.compile('adam')
+        print(self._model.summary())
+
+    def train(self, is_for_time_measurement=False, wipe_instance_variables_after=True):
+        self._setup()
+        self._callbacks = self._get_callbacks()
+        self._fit(self._agent, is_for_time_measurement, self._env, self._callbacks)
+        if wipe_instance_variables_after:
+            self._wipe_instance_variables()
+
+    def test(self, episodes, callbacks=[], wipe_instance_variables_after=True):
+        self.setup()
+        self._agent.test(self._env, nb_episodes=episodes, visualize=False, callbacks=callbacks)
+
+        get_ipython().magic('matplotlib inline')
+        import matplotlib.pyplot as plt
+
+        for obs in callbacks[0].rewards.values():
+            plt.plot([o for o in obs])
+        plt.xlabel("step")
+        plt.ylabel("reward")
+        if wipe_instance_variables_after:
+            self._wipe_instance_variables()
+        
+    def _wipe_instance_variables(self):
+         self._callbacks, self._agent, self._model,                 self._memory, self._policy, self.env = [None] * 6
+        
+    def _relative_path(self, directory, filename):
+        if directory is None or filename is None:
+            return None
+        return os.path.join(directory, filename)
+
+    def _get_model(self, load_model_path, observation_space_shape, nb_actions):
+        if load_model_path is None:
+            # DQNのネットワーク定義
+            model = Sequential()
+            model.add(Flatten(input_shape=(1,) + observation_space_shape))
+        #    model.add(Dense(4))
+        #    model.add(Activation('relu'))
+        #    model.add(Dense(4))
+        #    model.add(Activation('relu'))
+            model.add(Dense(nb_actions))
+            model.add(Activation('relu'))
+        else:
+            model = keras.models.load_model(load_model_path)
+        return model
+
+    def _initialize_agent(self):
+        nb_actions = self._env.action_space.n
+        observation_space_shape = self._env.observation_space.shape
+        model = self._get_model(self._load_model_path, observation_space_shape, nb_actions)
+        
+        # experience replay用のmemory
+        memory = SequentialMemory(limit=500000, window_length=1)
+        # 行動方策はオーソドックスなepsilon-greedy。ほかに、各行動のQ値によって確率を決定するBoltzmannQPolicyが利用可能
+        policy = EpsGreedyQPolicy(eps=0.1) 
+        dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=100,
+                       policy=policy)
+                       #target_model_update=1e-2, policy=policy)
+        #dqn.compile(Adam(lr=1e-3))
+        return (dqn, model, memory, policy)
+        
+    def _get_callbacks(self):
+        tensor_board_callback = MyTensorBoard(log_dir=self._log_directory, histogram_freq=1, embeddings_layer_names=True, write_graph=True)
+        model_saver_callback = ModelSaver(self._save_model_path, monitor='mean_q', mode='max')
+        callbacks = [tensor_board_callback, model_saver_callback]
+        return callbacks
+
+    def _fit(self, agent, is_for_time_measurement, env, callbacks=[]):
+        if is_for_time_measurement:
+            start = time.time()
+            print(DebugTools.now_str())
+            #minutes = 2591940/60 # 2591940secs = '2010-09-30 23:59:00' - '2010-09-01 00:00:00'
+            #minutes = (60 * 24 - 1) * 1# a day * 1
+            minutes = (60 * 24 - 1) * 10# a day * 10
+            #minutes = (60 * 24 - 1) * 2 # 2days
+            #minutes = (60 * 24 - 1) * 10 * 9999999 # 10days * 9999999 Epochs
+            #minutes = (60 * 24 - 1) * 30 * 9999999# 30days * 9999999 Epochs
+            history = agent.fit(env, nb_steps=minutes, visualize=False, verbose=2, nb_max_episode_steps=None,                              callbacks=callbacks)
+            elapsed_time = time.time() - start
+            print(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
+            print(DebugTools.now_str())
+        else:
+            history = agent.fit(env, nb_steps=50000, visualize=False, verbose=2, nb_max_episode_steps=None)
+        #学習の様子を描画したいときは、Envに_render()を実装して、visualize=True にします,
+
+
+# In[ ]:
+
+h = HistData('2010/9')
+
+
+# In[ ]:
 
 env = FXTrade(1000000, 0.08, h)
-nb_actions = env.action_space.n
-
-if load_model_path is None:
-    # DQNのネットワーク定義
-    model = Sequential()
-    model.add(Flatten(input_shape=(1,) + env.observation_space.shape))
-#    model.add(Dense(4))
-#    model.add(Activation('relu'))
-#    model.add(Dense(4))
-#    model.add(Activation('relu'))
-    model.add(Dense(nb_actions))
-    model.add(Activation('relu'))
-else:
-    model = keras.models.load_model(load_model_path)
-print(model.summary())
-
-# experience replay用のmemory
-memory = SequentialMemory(limit=500000, window_length=1)
-# 行動方策はオーソドックスなepsilon-greedy。ほかに、各行動のQ値によって確率を決定するBoltzmannQPolicyが利用可能
-policy = EpsGreedyQPolicy(eps=0.1) 
-dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=100,
-               policy=policy)
-               #target_model_update=1e-2, policy=policy)
-#dqn.compile(Adam(lr=1e-3))
-dqn.compile('adam')
-
-tensor_board_callback = MyTensorBoard(log_dir=log_directory, histogram_freq=1, embeddings_layer_names=True, write_graph=True)
-check_point_callback = keras.callbacks.ModelCheckpoint(filepath = os.path.join(model_directory, model_filename),                                        monitor='metrics["mse"]', verbose=1, save_best_only=True, mode='auto')
-
-model_saver_callback = ModelSaver(save_model_path, monitor='mean_q', mode='max')
-
-is_for_time_measurement = True
-if is_for_time_measurement:
-    start = time.time()
-    print(DebugTools.now_str())
-    #minutes = 2591940/60 # 2591940secs = '2010-09-30 23:59:00' - '2010-09-01 00:00:00'
-    #minutes = (60 * 24 - 1) * 1# a day * 1
-    minutes = (60 * 24 - 1) * 10# a day * 10
-    #minutes = (60 * 24 - 1) * 2 # 2days
-    #minutes = (60 * 24 - 1) * 10 * 9999999 # 10days * 9999999 Epochs
-    #minutes = (60 * 24 - 1) * 30 * 9999999# 30days * 9999999 Epochs
-    history = dqn.fit(env, nb_steps=minutes, visualize=False, verbose=2, nb_max_episode_steps=None,                      callbacks=[model_saver_callback, tensor_board_callback])
-    elapsed_time = time.time() - start
-    print(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
-    print(DebugTools.now_str())
-else:
-    history = dqn.fit(env, nb_steps=50000, visualize=False, verbose=2, nb_max_episode_steps=None)
-#学習の様子を描画したいときは、Envに_render()を実装して、visualize=True にします,
+dfx = DeepFX(env, 'test', prepared_model_filename='Keras-RL_DQN_FX_model_meanq1.855035e+10_episode00069.h5')
 
 
 # In[ ]:
@@ -538,36 +583,9 @@ class EpisodeLogger(rl.callbacks.Callback):
 
 # In[ ]:
 
-if False:
-    cb_ep = EpisodeLogger()
-    dqn.test(env, nb_episodes=10, visualize=False, callbacks=[cb_ep])
-
-
-    get_ipython().magic('matplotlib inline')
-    import matplotlib.pyplot as plt
-
-    for obs in cb_ep.observations.values():
-        plt.plot([o[0] for o in obs])
-    plt.xlabel("step")
-    plt.ylabel("pos")
-
-
-# In[ ]:
-
-print(history.__dict__)
-
-
-# In[ ]:
-
-dqn.metrics_names
-
-
-# In[ ]:
-
-dqn.trainable_model.metrics_names
-
-
-# In[ ]:
-
-model_saver_callback.metrics
+is_to_train = False
+if is_to_train:
+    dfx.train(is_for_time_measurement=True)
+else:
+    dfx.test(1, [EpisodeLogger()])
 
