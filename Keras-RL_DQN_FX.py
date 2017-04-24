@@ -44,6 +44,9 @@ class HistData:
         self.csv_path = 'USDJPY.hst_.csv'
         self.csv_data = pd.read_csv(self.csv_path, index_col=0, parse_dates=True, header=0)
         self.date_range = date_range
+        
+    def set_date_range(self, date_range):
+        self.date_range = date_range
 
     def data(self):
         if self.date_range is None:
@@ -549,7 +552,7 @@ class DeepFX:
 
 # In[ ]:
 
-h = HistData('2010/09/01')
+h = HistData('2010/9')
 
 
 # In[ ]:
@@ -585,29 +588,4 @@ if is_to_train:
     dfx.train(is_for_time_measurement=True)
 else:
     dfx.test(1, [EpisodeLogger()])
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-print(history.__dict__)
-
-
-# In[ ]:
-
-dqn.metrics_names
-
-
-# In[ ]:
-
-dqn.trainable_model.metrics_names
-
-
-# In[ ]:
-
-model_saver_callback.metrics
 
