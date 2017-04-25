@@ -70,7 +70,7 @@ class HistData:
             return None
         else:
             return price['Close']
-'''
+    '''
     def current(self):
         return self.data().ix[self._current_index]
 
@@ -93,7 +93,7 @@ class HistData:
         
     def current_index(self):
         return self._current_index
-'''
+    '''
     def max_value(self):
         return self.data()[['High']].max()['High']
 
@@ -171,13 +171,12 @@ class FXTrade(gym.core.Env):
         self._max_date = self._datetime2float(hist_data.dates().max())
         self._min_date = self._datetime2float(hist_data.dates().min())
         self._seed = seed_value
-        np.random.seed(seed_value)
 
         high = np.array([self._max_date, hist_data.max_value()])
         low = np.array([self._min_date, hist_data.min_value()])
         self.action_space = gym.spaces.Discrete(3)
         self.observation_space = gym.spaces.Box(low = low, high = high) # DateFrame, Close prise
-        
+
     def get_now_datetime_as(self, datetime_or_float):
         if datetime_or_float == 'float':
             return self._now_datetime
@@ -201,6 +200,7 @@ class FXTrade(gym.core.Env):
     def setseed(self, seed_value):
         self._seed = seed_value
         print('Set seed value: %d' % self._seed)
+        np.random.seed(seed_value)
         return seed_value
         
     def _seed(self):
@@ -265,39 +265,27 @@ class FXTrade(gym.core.Env):
         buy_or_sell_or_stay = action - 1
         assert buy_or_sell_or_stay == -1 or             buy_or_sell_or_stay == 0 or             buy_or_sell_or_stay == 1, 'buy_or_sell_or_stay: %d' % buy_or_sell_or_stay
         
-        dminute = 1 # minuteの増加量
         # 今注目している日時を更新
         logger.debug('今注目している日時を更新')
         #import pdb; pdb.set_trace()
-        previous_datetime = self.get_now_datetime_as('datetime')
-        now_datetime = previous_datetime + np.timedelta64(dminute, 'm')
+        previous_datetime = self.hist_data.at(self._current_index).name
+        self._current_index += 1
+        now_datetime = self.hist_data.at(self._current_index).name
                 
         logger.debug('before')
-        logger.debug(now_datetime)
-        logger.debug(self._now_datetime)
-        #import pdb; pdb.set_trace()
-        self._set_now_datetime(now_datetime)
+        logger.debug(previous_datetime)
         logger.debug('after')
         logger.debug(now_datetime)
-        logger.debug(self._now_datetime)
+
         # その時点における値群
-        if h.has_datetime(now_datetime):
-            modified_now_datetime = now_datetime
-        else:
-            modified_now_datetime = self.hist_data.get_last_exist_datetime(now_datetime).name
-        now_values = self.hist_data.data().loc[modified_now_datetime]
+        now_values = self.hist_data.at(self._current_index)
         
         now_buy_price = now_values['Close']
-        self._now_buy_price = now_buy_price
         now_sell_price = now_buy_price - self.spread
         
-        logger.debug(modified_now_datetime)
-        if pd.DatetimeIndex([modified_now_datetime]).hour[0] == 0 and            pd.DatetimeIndex([modified_now_datetime]).minute[0] == 0:
+        if pd.DatetimeIndex([now_datetime]).hour[0] == 0 and            pd.DatetimeIndex([now_datetime]).minute[0] == 0:
             # 毎日00:00に表示
-            if now_datetime == modified_now_datetime:
-                logger.info('%s %f' % (now_datetime, now_buy_price))
-            else:
-                 logger.info('%s (mod: %s) %f' % (now_datetime, modified_now_datetime, now_buy_price))
+            logger.info('%s %f' % (now_datetime, now_buy_price))
         
         now_price = self._get_price_of(buy_or_sell_or_stay, now_buy_price, now_sell_price)
         if self._positions: # position is not empty
@@ -329,7 +317,7 @@ class FXTrade(gym.core.Env):
         self._total_unrealized_gain = self._calc_total_unrealized_gain_by(now_price_for_positions)
 
         # 日付が学習データの最後と一致すれば終了
-        done = now_datetime == self.hist_data.dates()[-1]
+        done = now_datetime == self.hist_data.last().name
         if done:
             print('now_datetime: %s' % now_datetime)
             print('self.hist_data.dates()[-1]: %s' % self.hist_data.dates()[-1])
@@ -339,23 +327,21 @@ class FXTrade(gym.core.Env):
         reward = self._total_unrealized_gain + self.cash
         
         # 次のstate、reward、終了したかどうか、追加情報の順に返す
-        # 追加情報は特にないので空dict
         logger.debug('_step ENDED')
-        return np.array([self._now_datetime, self._now_buy_price]), reward, done, {}
+        return np.array([self._current_index, now_buy_price]), reward, done, {now_datetime: str(now_datetime)}
         
     ''' 各episodeの開始時に呼ばれ、初期stateを返すように実装 '''
     def _reset(self):
         print('_reset START')
-        print(self.hist_data.dates()[0])
-
-        self._set_now_datetime(self.hist_data.dates()[0])
-        print(self._now_datetime)
-
-        self._now_buy_price = self.hist_data.data()['Close'][0]
+        self._current_index = 0
+        current_buy_price = self.hist_data.value_at(self._current_index)
+        print('self.hist_data.value_at(current_index): %3.4f' % current_buy_price)
+        self.seed = np.random.seed(self._seed)
         self._positions = []
         print(self._seed)
+        np.random.seed(self._seed)
         print('_reset END')
-        return np.array([self._now_datetime, self._now_buy_price])
+        return np.array([self._current_index, current_buy_price])
     
 
 
@@ -507,7 +493,7 @@ class DeepFX:
         print(self._model.summary())
 
     def train(self, is_for_time_measurement=False, wipe_instance_variables_after=True):
-        self._setup()
+        self.setup()
         self._callbacks = self._get_callbacks()
         self._fit(self._agent, is_for_time_measurement, self._env, self._callbacks)
         if wipe_instance_variables_after:
@@ -577,10 +563,10 @@ class DeepFX:
             print(DebugTools.now_str())
             #minutes = 2591940/60 # 2591940secs = '2010-09-30 23:59:00' - '2010-09-01 00:00:00'
             #minutes = (60 * 24 - 1) * 1# a day * 1
-            minutes = (60 * 24 - 1) * 10# a day * 10
+            #minutes = (60 * 24 - 1) * 10# a day * 10
             #minutes = (60 * 24 - 1) * 2 # 2days
             #minutes = (60 * 24 - 1) * 10 * 9999999 # 10days * 9999999 Epochs
-            #minutes = (60 * 24 - 1) * 30 * 9999999# 30days * 9999999 Epochs
+            minutes = (60 * 24 - 1) * 30 * 9999999# 30days * 9999999 Epochs
             history = agent.fit(env, nb_steps=minutes, visualize=False, verbose=2, nb_max_episode_steps=None,                              callbacks=callbacks)
             elapsed_time = time.time() - start
             print(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
@@ -593,12 +579,6 @@ class DeepFX:
 # In[ ]:
 
 h = HistData('2010/9')
-
-
-# In[ ]:
-
-env = FXTrade(1000000, 0.08, h)
-dfx = DeepFX(env, 'test', prepared_model_filename='Keras-RL_DQN_FX_model_meanq1.855035e+10_episode00069.h5')
 
 
 # In[ ]:
@@ -623,7 +603,11 @@ class EpisodeLogger(rl.callbacks.Callback):
 
 # In[ ]:
 
-is_to_train = False
+env = FXTrade(1000000, 0.08, h)
+dfx = DeepFX(env, 'train')
+#dfx = DeepFX(env, 'test', prepared_model_filename='Keras-RL_DQN_FX_model_meanq1.855035e+10_episode00069.h5')
+
+is_to_train = True
 if is_to_train:
     dfx.train(is_for_time_measurement=True)
 else:
