@@ -44,7 +44,8 @@ class HistData:
         self.csv_path = 'USDJPY.hst_.csv'
         self.csv_data = pd.read_csv(self.csv_path, index_col=0, parse_dates=True, header=0)
         self.date_range = date_range
-        
+        self._current_index = 0
+
     def set_date_range(self, date_range):
         self.date_range = date_range
 
@@ -53,6 +54,25 @@ class HistData:
             return self.csv_data
         else:
             return self.csv_data[self.date_range]
+
+    def first(self):
+        return self.data().ix[0]
+
+    def last(self):
+        return self.data().ix[-1]
+
+    def current(self):
+        return self.data().ix[self._current_index]
+
+    def next(self):
+        if len(self.data()) - 1 > self._current_index:
+            self._current_index += 1
+            return self.current()
+        else:
+            return None
+
+    def current_index(self):
+        return self._current_index
 
     def max_value(self):
         return self.data()[['High']].max()['High']
