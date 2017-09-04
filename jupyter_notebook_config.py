@@ -11,6 +11,7 @@ c = get_config()
 c.NotebookApp.ip = '*'                                                                                                        
 c.NotebookApp.port = 8888                                                                                                     
 c.NotebookApp.open_browser = False                                                                                            
+c.NotebookApp.password = 'sha1:6787afc32937:402e2a05be8d653c995ef712fe3689f4cfbae1e8' # password
                                                                                                                               
 # Generate a self-signed certificate                                                                                          
 if 'GEN_CERT' in os.environ:                                                                                                  
