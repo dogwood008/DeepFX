@@ -5,6 +5,7 @@
 
 # In[ ]:
 
+
 import gym
 import gym.spaces
 import numpy as np
@@ -20,6 +21,7 @@ import itertools
 
 
 # In[ ]:
+
 
 logger = getLogger(__name__)
 handler = StreamHandler()
@@ -39,9 +41,10 @@ class Action(enum.Enum):
 
 # In[ ]:
 
+
 class HistData:
     def __init__(self, date_range=None):
-        self.csv_path = 'USDJPY.hst_.csv'
+        self.csv_path = 'historical_data/USDJPY.hst_.csv'
         self.csv_data = pd.read_csv(self.csv_path, index_col=0, parse_dates=True, header=0)
         self.date_range = date_range
         
@@ -97,6 +100,7 @@ class HistData:
 
 # In[ ]:
 
+
 ''' ポジション '''
 class Position:
     def __init__(self, buy_or_sell, price, amount):
@@ -117,6 +121,7 @@ class Position:
 
 
 # In[ ]:
+
 
 class FXTrade(gym.core.Env):
     AMOUNT_UNIT = 50000
@@ -321,6 +326,7 @@ class FXTrade(gym.core.Env):
 
 # In[ ]:
 
+
 import rl.callbacks
 class ModelSaver(rl.callbacks.TrainEpisodeLogger):
     def __init__(self, filepath, monitor='loss', verbose=1, save_best_only=True, mode='min', save_weights_only=False):
@@ -402,6 +408,7 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
 
 # In[ ]:
 
+
 import tensorflow as tf
 ''' 元のTensorBoardだと、value.item()で死ぬのでvalueに変更。変更点はここだけ。 '''
 class MyTensorBoard(keras.callbacks.TensorBoard):
@@ -442,6 +449,7 @@ class MyTensorBoard(keras.callbacks.TensorBoard):
 
 # In[ ]:
 
+
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
 from keras.optimizers import Adam
@@ -467,7 +475,7 @@ class DeepFX:
         print(self._model.summary())
 
     def train(self, is_for_time_measurement=False, wipe_instance_variables_after=True):
-        self._setup()
+        self.setup()
         self._callbacks = self._get_callbacks()
         self._fit(self._agent, is_for_time_measurement, self._env, self._callbacks)
         if wipe_instance_variables_after:
@@ -552,16 +560,20 @@ class DeepFX:
 
 # In[ ]:
 
+
 h = HistData('2010/9')
 
 
 # In[ ]:
 
+
 env = FXTrade(1000000, 0.08, h)
-dfx = DeepFX(env, 'test', prepared_model_filename='Keras-RL_DQN_FX_model_meanq1.855035e+10_episode00069.h5')
+prepared_model_filename = 'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
+dfx = DeepFX(env, 'test', prepared_model_filename=prepared_model_filename)
 
 
 # In[ ]:
+
 
 class EpisodeLogger(rl.callbacks.Callback):
     def __init__(self):
@@ -582,6 +594,7 @@ class EpisodeLogger(rl.callbacks.Callback):
 
 
 # In[ ]:
+
 
 is_to_train = False
 if is_to_train:
