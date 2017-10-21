@@ -30,6 +30,13 @@ RUN jupyter contrib nbextension install --user && \
 			git clone https://github.com/lambdalisue/jupyter-vim-binding vim_binding && \
 			jupyter nbextension enable vim_binding/vim_binding
 
+RUN jupyter contrib nbextension install --user && \
+			mkdir -p $(jupyter --data-dir)/nbextensions && \
+			cd $(jupyter --data-dir)/nbextensions && \
+			git clone https://github.com/lambdalisue/jupyter-vim-binding vim_binding && \
+			jupyter nbextension enable vim_binding/vim_binding
+
+RUN pip install git+git://github.com/dogwood008/backtrader.git@feture/compatible_with_yahoojfinance
 ADD .screenrc /home/jovyan/
 ADD jupyter_notebook_config.py /home/jovyan/.jupyter/
 CMD start-notebook.sh
