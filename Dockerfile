@@ -23,7 +23,7 @@ RUN echo "#!/bin/sh\nexec >/dev/tty 2>/dev/tty </dev/tty; /usr/bin/screen" > /ho
         chmod +x /home/jovyan/screen.sh
 
 RUN jupyter contrib nbextension install --user --skip-running-check && \
-      jt -t onedork && \
+      jt -t onedork -vim && \
 			mkdir -p $(jupyter --data-dir)/nbextensions && \
 			cd $(jupyter --data-dir)/nbextensions && \
 			git clone https://github.com/lambdalisue/jupyter-vim-binding vim_binding && \
