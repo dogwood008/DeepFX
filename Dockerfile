@@ -9,6 +9,7 @@ RUN cd /tmp && wget 'http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.
         cd ta-lib &&\
         ./configure --prefix=/usr &&\
         make &&\
+        make install
 
 # Upgrade pip
 USER jovyan
@@ -16,10 +17,18 @@ RUN pip install --upgrade pip
 
 # Install pip packages
 USER jovyan
-RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym tensorflow
+RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym tensorflow google-api-python-client jupyter_contrib_nbextensions jupyterthemes
 RUN pip install git+https://github.com/matthiasplappert/keras-rl.git
 RUN echo "#!/bin/sh\nexec >/dev/tty 2>/dev/tty </dev/tty; /usr/bin/screen" > /home/jovyan/screen.sh &&\
         chmod +x /home/jovyan/screen.sh
+RUN jupyter contrib nbextension install --user --skip-running-check
+RUN jt -t onedor
+
+RUN jupyter contrib nbextension install --user && \
+			mkdir -p $(jupyter --data-dir)/nbextensions && \
+			cd $(jupyter --data-dir)/nbextensions && \
+			git clone https://github.com/lambdalisue/jupyter-vim-binding vim_binding && \
+			jupyter nbextension enable vim_binding/vim_binding
 
 ADD .screenrc /home/jovyan/
 ADD jupyter_notebook_config.py /home/jovyan/.jupyter/

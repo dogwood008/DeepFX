@@ -6,5 +6,9 @@ services:
       - '8888:8888'
     volumes:
       - './:/home/jovyan'
+    environment:
+      - SLACK_INCOMING_WEBHOOK_URL=$SLACK_INCOMING_WEBHOOK_URL
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 
 
