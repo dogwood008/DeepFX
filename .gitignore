@@ -1,20 +1,31 @@
-### https://raw.github.com/github/gitignore/fcc71d2966037fc46b3ae4f16e3b30d4e5f28581/Global/Vim.gitignore
+.ipython
+.local
+.bash_history
+.credentials/
+.jupyter/
+.keras/
+.python_history
+.viminfo
 
-# swap
+### https://raw.github.com/github/gitignore/d0b1f7fef90caba0a22bb0a82d2f0abcc2cbc302/Global/Vim.gitignore
+
+# Swap
 [._]*.s[a-v][a-z]
 [._]*.sw[a-p]
 [._]s[a-v][a-z]
 [._]sw[a-p]
-# session
+
+# Session
 Session.vim
-# temporary
+
+# Temporary
 .netrwhist
 *~
-# auto-generated tag files
+# Auto-generated tag files
 tags
 
 
-### https://raw.github.com/github/gitignore/fcc71d2966037fc46b3ae4f16e3b30d4e5f28581/Python.gitignore
+### https://raw.github.com/github/gitignore/d0b1f7fef90caba0a22bb0a82d2f0abcc2cbc302/Python.gitignore
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -26,7 +37,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -42,6 +52,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -61,7 +72,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
-*,cover
+*.cover
 .hypothesis/
 
 # Translations
@@ -70,6 +81,8 @@ coverage.xml
 
 # Django stuff:
 *.log
+.static_storage/
+.media/
 local_settings.py
 
 # Flask stuff:
@@ -97,57 +110,26 @@ celerybeat-schedule
 # SageMath parsed files
 *.sage.py
 
-# dotenv
+# Environments
 .env
-
-# virtualenv
 .venv
+env/
 venv/
 ENV/
+env.bak/
+venv.bak/
 
 # Spyder project settings
 .spyderproject
+.spyproject
 
 # Rope project settings
 .ropeproject
 
-# https://raw.githubusercontent.com/jupyter/notebook/master/.gitignore
-MANIFEST
-build
-dist
-_build
-docs/man/*.gz
-docs/source/api/generated
-docs/source/config.rst
-docs/gh-pages
-notebook/static/components
-notebook/static/style/*.min.css*
-notebook/static/*/js/built/
-notebook/static/*/built/
-notebook/static/built/
-notebook/static/*/js/main.min.js*
-notebook/static/lab/*bundle.js
-node_modules
-*.py[co]
-__pycache__
-*.egg-info
-*~
-*.bak
-.ipynb_checkpoints
-.tox
-.DS_Store
-\#*#
-.#*
-.coverage
-src
+# mkdocs documentation
+/site
 
-*.swp
-*.map
-.idea/
-Read the Docs
-config.rst
+# mypy
+.mypy_cache/
 
-# Project original
-USDJPY.hst_.csv
-logs
-models
+
