@@ -15,8 +15,8 @@ c.NotebookApp.ip = '*'
 c.NotebookApp.port = 8888
 c.NotebookApp.open_browser = False
 c.NotebookApp.password = \
-	os.environ['JUPYTER_PASSWORD_HASH'] or \
-	'sha1:6787afc32937:402e2a05be8d653c995ef712fe3689f4cfbae1e8' # password
+         os.environ.get('JUPYTER_PASSWORD_HASH') or \
+         'sha1:6787afc32937:402e2a05be8d653c995ef712fe3689f4cfbae1e8' # password
 
 # Generate a self-signed certificate
 if 'GEN_CERT' in os.environ:
