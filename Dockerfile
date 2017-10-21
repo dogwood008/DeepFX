@@ -22,7 +22,7 @@ RUN pip install git+https://github.com/matthiasplappert/keras-rl.git
 RUN echo "#!/bin/sh\nexec >/dev/tty 2>/dev/tty </dev/tty; /usr/bin/screen" > /home/jovyan/screen.sh &&\
         chmod +x /home/jovyan/screen.sh
 RUN jupyter contrib nbextension install --user --skip-running-check
-RUN jt -t onedor
+RUN jt -t onedork
 
 RUN jupyter contrib nbextension install --user && \
 			mkdir -p $(jupyter --data-dir)/nbextensions && \
