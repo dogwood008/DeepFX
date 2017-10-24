@@ -136,6 +136,7 @@ class FXTrade(gym.core.Env):
         self._max_date = self._datetime2float(hist_data.dates().max())
         self._min_date = self._datetime2float(hist_data.dates().min())
         self._seed = seed_value
+        self._logger = logger
         np.random.seed(seed_value)
 
         high = np.array([self._max_date, hist_data.max_value()])
@@ -311,16 +312,16 @@ class FXTrade(gym.core.Env):
     ''' 各episodeの開始時に呼ばれ、初期stateを返すように実装 '''
     def _reset(self):
         print('_reset START')
-        print(self.hist_data.dates()[0])
-
-        self._set_now_datetime(self.hist_data.dates()[0])
-        print(self._now_datetime)
-
-        self._now_buy_price = self.hist_data.data()['Close'][0]
+        print('self._seed: %i' % self._seed)
+        initial_index = 0
+        
+        print('Start datetime: %s' % self.hist_data.dates()[initial_index])
+        now_buy_price = self.hist_data.data().ix[[initial_index], ['Close']].Close.iloc[0]
         self._positions = []
-        print(self._seed)
         print('_reset END')
-        return np.array([self._now_datetime, self._now_buy_price])
+        next_state = [initial_index, now_buy_price]
+        import pdb; pdb.set_trace()
+        return np.array(next_state)
     
 
 
@@ -459,7 +460,12 @@ from rl.policy import EpsGreedyQPolicy
 from rl.memory import SequentialMemory
 
 class DeepFX:
-    def __init__(self, env, mode, nb_steps=None,               log_directory='./logs', model_directory='./models',              model_filename='Keras-RL_DQN_FX_model_meanq{mean_q:e}_episode{episode:05d}',              prepared_model_filename=None,              weights_filename='Keras-RL_DQN_FX_weights.h5',):
+    def __init__(self, env, mode, nb_steps=None,
+              log_directory='./logs', model_directory='./models',
+              model_filename='Keras-RL_DQN_FX_model_meanq{mean_q:e}_episode{episode:05d}',
+              prepared_model_filename=None,
+              weights_filename='Keras-RL_DQN_FX_weights.h5',):
+
         self._log_directory = log_directory
         self._model_directory = model_directory
         self._model_filename = model_filename
@@ -567,14 +573,6 @@ h = HistData('2010/9')
 # In[ ]:
 
 
-env = FXTrade(1000000, 0.08, h)
-prepared_model_filename = 'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
-dfx = DeepFX(env, 'test', prepared_model_filename=prepared_model_filename)
-
-
-# In[ ]:
-
-
 class EpisodeLogger(rl.callbacks.Callback):
     def __init__(self):
         self.observations = {}
@@ -596,9 +594,23 @@ class EpisodeLogger(rl.callbacks.Callback):
 # In[ ]:
 
 
-is_to_train = False
+env = FXTrade(1000000, 0.08, h, logger=logger)
+prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
+dfx = DeepFX(env, 'test', prepared_model_filename=prepared_model_filename)
+
+
+# In[ ]:
+
+
+is_to_train = True
 if is_to_train:
     dfx.train(is_for_time_measurement=True)
 else:
     dfx.test(1, [EpisodeLogger()])
+
+
+# In[ ]:
+
+
+
 
