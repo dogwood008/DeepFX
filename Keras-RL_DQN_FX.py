@@ -88,7 +88,7 @@ else:
 get_ipython().magic('matplotlib notebook')
 import matplotlib.pyplot as plt
 import numpy as np
-data = hist_data.data()['Close']
+data = hd.data()['Close']
 x = data.index
 y = data.values
 sd = 1
@@ -104,10 +104,11 @@ data.values
 
 # ## References
 # 
-# - [http://recruit.gmo.jp/engineer/jisedai/blog/deep-q-learning/](Deep Q-LearningでFXしてみた)
+# - [Deep Q-LearningでFXしてみた](http://recruit.gmo.jp/engineer/jisedai/blog/deep-q-learning/)
+# - [slide](https://www.slideshare.net/JunichiroKatsuta/deep-qlearningfx)
 
 # In[ ]:
 
 
-
+hd.data().ix[hd.data().idxmin()].index.rank()
 

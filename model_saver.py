@@ -32,9 +32,10 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
 
     def on_episode_end(self, episode, logs):
         print('========== Model Saver output ==============')
-        monitor_value = self._formatted_metrics(episode)[self.monitor]
-
-        #try:
+        try:
+            monitor_value = float(self._formatted_metrics(episode)[self.monitor])
+        except:
+            monitor_value = 0.0
         print('%s value: %e' % (self.monitor, monitor_value))
         values = {'episode': episode, self.monitor: monitor_value}
         if not self.save_best_only:

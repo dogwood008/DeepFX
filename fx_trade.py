@@ -26,14 +26,19 @@ class FXTrade(gym.core.Env):
         self.cash = initial_cash
         self.spread = spread
         self._positions = []
-        self._max_date = self._datetime2float(hist_data.dates().max())
-        self._min_date = self._datetime2float(hist_data.dates().min())
+        #self._max_date = self._datetime2float(hist_data.dates().max())
+        #self._min_date = self._datetime2float(hist_data.dates().min())
         self._seed = seed_value
         self._logger = logger
         np.random.seed(seed_value)
 
-        high = np.array([self._max_date, hist_data.max_value()])
-        low = np.array([self._min_date, hist_data.min_value()])
+        max = hd.data().ix[hd.data()['Open'].idxman()]
+        min = hd.data().ix[hd.data()['Open'].idxmin()]
+        # TODO: とりあえず動くが、0は意味がないので修正が必要
+        high = np.array([0, max['Close']]) # [open, high, low, close] でも良いかも？ # 0をとりあえず入れておく（動かなくなったので）
+        low = np.array([0, hist_data.data()['Close'].min()]) # 0をとりあえず入れておく（動かなくなったので）
+        #high = np.array([self._max_date, hist_data.max_value()])
+        #low = np.array([self._min_date, hist_data.min_value()])
         self.action_space = gym.spaces.Discrete(3)
         self.observation_space = gym.spaces.Box(low = low, high = high) # DateFrame, Close prise
         
@@ -185,7 +190,7 @@ class FXTrade(gym.core.Env):
         reward = total_unrealized_gain + self.cash
 
         # 日付が学習データの最後と一致するか、含み損が初期の現金の1割以上で終了
-        done = (self._now_index >= len(self.hist_data.data()) - 1) or                 ((-reward) >= self.initial_cash * 0.1)
+        done = (self._now_index >= len(self.hist_data.data()) - 1 - 1) or                 ((-reward) >= self.initial_cash * 0.1)
         if done:
             print('now_datetime: %s' % now_datetime)
             print('len(self.hist_data.data()) - 1: %d' % (len(self.hist_data.data()) - 1))
@@ -206,7 +211,7 @@ class FXTrade(gym.core.Env):
         # 次のstate、reward、終了したかどうか、追加情報の順に返す
         # 追加情報は特にないので空dict
         self._logger.debug('_step ENDED')
-        return np.array([self._now_index, now_buy_price]), reward, done, {}
+        return np.array([0, now_buy_price]), reward, done, {} # 0をとりあえず入れておく（動かなくなったので）
         
     ''' 各episodeの開始時に呼ばれ、初期stateを返すように実装 '''
     def _reset(self):
@@ -219,7 +224,13 @@ class FXTrade(gym.core.Env):
         self._now_index = initial_index
         self._positions = []
         print('_reset END')
-        next_state = [self._now_index, now_buy_price]
-        return np.array(next_state)
+        next_state = now_buy_price
+        return np.array([0, next_state]) # 0をとりあえず入れておく（動かなくなったので）
     
+
+
+# In[ ]:
+
+
+
 

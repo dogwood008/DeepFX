@@ -84,6 +84,7 @@ class DeepFX:
             # DQNのネットワーク定義
             model = Sequential()
             model.add(Flatten(input_shape=(1,) + observation_space_shape))
+            #model.add(Flatten(input_shape=observation_space_shape))
         #    model.add(Dense(4))
         #    model.add(Activation('relu'))
         #    model.add(Dense(4))
