@@ -6,6 +6,10 @@
 .keras/
 .python_history
 .viminfo
+Untitled*
+historical_data
+logs
+
 
 ### https://raw.github.com/github/gitignore/d0b1f7fef90caba0a22bb0a82d2f0abcc2cbc302/Global/Vim.gitignore
 
