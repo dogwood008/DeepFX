@@ -122,6 +122,7 @@ class DeepFX:
             #minutes = 2591940/60 # 2591940secs = '2010-09-30 23:59:00' - '2010-09-01 00:00:00'
             #minutes = (60 * 24 - 1) * 1# a day * 1
             minutes = (60 * 24 - 1) * 10# a day * 10
+            #minutes = env.steps()
             #minutes = (60 * 24 - 1) * 2 # 2days
             #minutes = (60 * 24 - 1) * 10 * 9999999 # 10days * 9999999 Epochs
             #minutes = (60 * 24 - 1) * 30 * 9999999# 30days * 9999999 Epochs
@@ -130,6 +131,9 @@ class DeepFX:
             print(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
             print(DebugTools.now_str())
         else:
-            history = agent.fit(env, nb_steps=50000, visualize=False, verbose=2, nb_max_episode_steps=None)
+            history = agent.fit(env, nb_steps=50000, visualize=True, verbose=2, nb_max_episode_steps=None)
         #学習の様子を描画したいときは、Envに_render()を実装して、visualize=True にします,
+        
+    def _render(self, mode='human', close=False):
+        import pdb; pdb.set_trace()
 

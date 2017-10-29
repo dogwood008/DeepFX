@@ -11,19 +11,20 @@ import pandas as pd
 
 
 class HistData:
-    def __init__(self, date_range=None):
-        self.csv_path = 'historical_data/USDJPY.hst_.csv'
+    def __init__(self, csv_path=None, begin_date=None, end_date=None, range_limited=True):
+        self.csv_path = csv_path
         self.csv_data = pd.read_csv(self.csv_path, index_col=0, parse_dates=True, header=0)
-        self.date_range = date_range
+        self.begin_date = begin_date
+        self.end_date = end_date
+        if range_limited:
+            self.csv_data = self.data()
         
-    def set_date_range(self, date_range):
-        self.date_range = date_range
-
     def data(self):
-        if self.date_range is None:
+        if self.begin_date is None and self.end_date is None:
             return self.csv_data
         else:
-            return self.csv_data[self.date_range]
+            is_in_date_array = (self.csv_data.index >= self.begin_date) &                                 (self.csv_data.index <= self.end_date)
+            return self.csv_data.ix[is_in_date_array]
 
     def max_value(self):
         return self.data()[['High']].max()['High']
@@ -64,4 +65,14 @@ class HistData:
         next_exist_datetime = h.get_next_exist_datetime(to_datetime)
         delta = next_exist_datetime.name - last_datetime.name
         return delta <= threshold_timedelta
+
+
+# In[ ]:
+
+
+if __name__ == '__main__':
+    begin = '2010-09-01T00:00:00'
+    end = '2010-09-07T23:59:59'
+    hd = HistData(begin_date=begin, end_date=end)
+    print(hd.data())
 

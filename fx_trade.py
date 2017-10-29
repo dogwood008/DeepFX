@@ -17,7 +17,7 @@ from position import Position
 
 
 class FXTrade(gym.core.Env):
-    AMOUNT_UNIT = 50000
+    AMOUNT_UNIT = 10000
     THRESHOULD_TIME_DELTA = dt.timedelta(days=1)
     
     def __init__(self, initial_cash, spread, hist_data, seed_value=100000, logger=None):
@@ -37,6 +37,9 @@ class FXTrade(gym.core.Env):
         self.action_space = gym.spaces.Discrete(3)
         self.observation_space = gym.spaces.Box(low = low, high = high) # DateFrame, Close prise
         
+    def steps(self):
+        return len(self.hist_data.data());
+
     def get_now_datetime_as(self, datetime_or_float):
         if datetime_or_float == 'float':
             return self._now_datetime
@@ -118,15 +121,17 @@ class FXTrade(gym.core.Env):
         return position
     
     ''' 参照すべき価格を返す。取引しようとしているのが売りか買いかで判断する。 '''
+    # 一時的に、売値も買値も同じ額とする
     def _get_price_of(self, buy_or_sell, now_buy_price, now_sell_price):
-        if buy_or_sell == Action.BUY.value or buy_or_sell == Action.STAY.value:
-            return now_buy_price
-        elif buy_or_sell == Action.SELL.value:
-            return now_sell_price
-        else:
-            return None
+        return now_buy_price
+        # if buy_or_sell == Action.BUY.value or buy_or_sell == Action.STAY.value:
+        #     return now_buy_price
+        # elif buy_or_sell == Action.SELL.value:
+        #     return now_sell_price
+        # else:
+        #     return None
 
-    ''' 今注目している日時を1分進める '''
+    ''' 今注目している日時を1つ進める（次の足を見る） '''
     def _increment_datetime(self):
         self._logger.debug('今注目している日時を更新 (=インデックスのインクリメント)')
         before_datetime = self.hist_data.data().iloc[[self._now_index], :].index[0]
@@ -164,37 +169,39 @@ class FXTrade(gym.core.Env):
         buy_or_sell_or_stay = action - 1
         assert buy_or_sell_or_stay == -1 or             buy_or_sell_or_stay == 0 or             buy_or_sell_or_stay == 1, 'buy_or_sell_or_stay: %d' % buy_or_sell_or_stay
         
-        # 今注目している日時を更新
-        self._increment_datetime()
-        
-        # その時点における値群
-        now_buy_price = self.hist_data.data().ix[[self._now_index], ['Close']].Close.iloc[0]
-        now_sell_price = now_buy_price - self.spread
-        
-        # For Debug: 毎日00:00に買値を表示する。学習の進捗を確認するため。
-        now_datetime = self.hist_data.data().iloc[[self._now_index], :].index[0]
-        self._print_if_a_day_begins(now_datetime, now_buy_price)
-        
-        # actionによって、使用する価格を変える（売価/買価）
-        now_price = self._get_price_of(buy_or_sell_or_stay,
-                                       now_buy_price = now_buy_price,
-                                       now_sell_price = now_sell_price)
-        
         # ポジションの手仕舞い、または追加オーダーをする
-        self._close_or_more_order(buy_or_sell_or_stay, now_price)
+        now_price = now_sell_price = now_buy_price =             self.hist_data.data().ix[[self._now_index], ['Close']].Close.iloc[0]
+        self._close_or_more_order(buy_or_sell_or_stay, now_buy_price)
         
         # 現在の総含み益の合計値を再計算
         total_unrealized_gain = self._calc_total_unrealized_gain_by(
             now_buy_price, now_sell_price)
 
-        # 日付が学習データの最後と一致すれば終了
-        done = self._now_index >= len(self.hist_data.data()) - 1
+        # For Debug: 毎日00:00に買値を表示する。学習の進捗を確認するため。
+        now_datetime = self.hist_data.data().iloc[[self._now_index], :].index[0]
+        self._print_if_a_day_begins(now_datetime, now_buy_price)
+        
+        # 報酬は現金と総含み益
+        reward = total_unrealized_gain + self.cash
+
+        # 日付が学習データの最後と一致するか、含み損が初期の現金の1割以上で終了
+        done = (self._now_index >= len(self.hist_data.data()) - 1) or                 ((-reward) >= self.initial_cash * 0.1)
         if done:
             print('now_datetime: %s' % now_datetime)
             print('len(self.hist_data.data()) - 1: %d' % (len(self.hist_data.data()) - 1))
-
-        # 報酬は現金と総含み益
-        reward = total_unrealized_gain + self.cash
+        
+        # 今注目している日時を更新
+        self._increment_datetime()
+        
+        # その時点における値群
+        now_buy_price = self.hist_data.data().ix[[self._now_index], ['Close']].Close.iloc[0]
+        # 次のアクションが未定のため、買値を渡す
+        # now_sell_price = now_buy_price - self.spread
+        # 
+        # # actionによって、使用する価格を変える（売価/買価）
+        # now_price = self._get_price_of(buy_or_sell_or_stay,
+        #                                now_buy_price = now_buy_price,
+        #                                now_sell_price = now_sell_price)
         
         # 次のstate、reward、終了したかどうか、追加情報の順に返す
         # 追加情報は特にないので空dict

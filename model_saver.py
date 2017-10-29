@@ -4,6 +4,8 @@
 # In[ ]:
 
 
+import warnings
+import itertools
 import rl.callbacks
 import numpy as np
 
