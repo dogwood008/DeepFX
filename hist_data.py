@@ -13,7 +13,10 @@ import pandas as pd
 class HistData:
     def __init__(self, csv_path=None, begin_date=None, end_date=None, range_limited=True):
         self.csv_path = csv_path
-        self.csv_data = pd.read_csv(self.csv_path, index_col=0, parse_dates=True, header=0)
+        self.csv_data = pd.read_csv(self.csv_path, index_col='date', parse_dates=['date'],
+                                    names=['date', 'open', 'high', 'low', 'close', 'volume'],
+                                    dtype={'date': 'str', 'open': 'float', 'high': 'float', 'low': 'float', 'close': 'float', 'volume': 'int'},
+                                    sep=';')
         self.begin_date = begin_date
         self.end_date = end_date
         if range_limited:
@@ -71,8 +74,14 @@ class HistData:
 
 
 if __name__ == '__main__':
-    begin = '2010-09-01T00:00:00'
-    end = '2010-09-07T23:59:59'
-    hd = HistData(begin_date=begin, end_date=end)
+    begin = '2017-10-01T00:00:00'
+    end = '2017-10-07T23:59:59'
+    hd = HistData(csv_path='historical_data/DAT_ASCII_USDJPY_M1_201710.csv', begin_date=begin, end_date=end)
     print(hd.data())
+
+
+# In[ ]:
+
+
+
 
