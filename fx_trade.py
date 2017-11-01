@@ -34,8 +34,9 @@ class FXTrade(gym.core.Env):
 
         max = hd.data().ix[hd.data()['Open'].idxman()]
         min = hd.data().ix[hd.data()['Open'].idxmin()]
-        # TODO: とりあえず動くが、0は意味がないので修正が必要
-        high = np.array([0, max['Close']]) # [open, high, low, close] でも良いかも？ # 0をとりあえず入れておく（動かなくなったので）
+        
+        # x軸: 時間経過, y軸: 現在の1USDの価格（単位：円）
+        high = np.array([len(self.hist_data) - 1, max['Close']]) # [x軸最大値, y軸最大値]
         low = np.array([0, hist_data.data()['Close'].min()]) # 0をとりあえず入れておく（動かなくなったので）
         #high = np.array([self._max_date, hist_data.max_value()])
         #low = np.array([self._min_date, hist_data.min_value()])
