@@ -13,8 +13,19 @@ import pandas as pd
 class HistData:
     def __init__(self, csv_path=None, begin_date=None, end_date=None, range_limited=True):
         self.csv_path = csv_path
-        self.csv_data = pd.read_csv(self.csv_path, index_col='date', parse_dates=['date'],
-                                    names=['date', 'open', 'high', 'low', 'close', 'volume'],
+        with open(self.csv_path) as f:
+            try:
+                int(f.readline()[0])
+                print('no header')
+                header = None
+                names = ('date', 'open', 'high', 'low', 'close', 'volume')
+            except:
+                print('header is included')
+                header = 0
+                names = None
+        self.csv_data = pd.read_csv(self.csv_path,
+                                    names=names, header=header,
+                                    index_col='date', parse_dates=['date'],
                                     dtype={'date': 'str', 'open': 'float', 'high': 'float', 'low': 'float', 'close': 'float', 'volume': 'int'},
                                     sep=';')
         self.begin_date = begin_date
@@ -76,7 +87,8 @@ class HistData:
 if __name__ == '__main__':
     begin = '2017-10-01T00:00:00'
     end = '2017-10-07T23:59:59'
-    hd = HistData(csv_path='historical_data/DAT_ASCII_USDJPY_M1_201710.csv', begin_date=begin, end_date=end)
+    hd = HistData(csv_path='historical_data/DAT_ASCII_USDJPY_M1_201710_m5.csv', begin_date=begin, end_date=end)
+    #hd = HistData(csv_path='historical_data/DAT_ASCII_USDJPY_M1_201710.csv', begin_date=begin, end_date=end)
     print(hd.data())
 
 
