@@ -59,7 +59,7 @@ hd.data()
 env = FXTrade(1000000, 0.08, hd, logger=logger)
 #env = FXTrade(1000000, 0.08, h, logger=logger)
 prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
-dfx = DeepFX(env, 'test', prepared_model_filename=prepared_model_filename, episodes = 3)
+dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, episodes = 3)
 
 
 # In[ ]:

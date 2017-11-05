@@ -58,7 +58,7 @@ class FXTrade(gym.core.Env):
             
     def setseed(self, seed_value):
         self._seed = seed_value
-        print('Set seed value: %d' % self._seed)
+        self._logger.info('Set seed value: %d' % self._seed)
         return seed_value
         
     def _seed(self):
@@ -117,7 +117,7 @@ class FXTrade(gym.core.Env):
         return position
     
     ''' 参照すべき価格を返す。取引しようとしているのが売りか買いかで判断する。 '''
-    # 一時的に、売値も買値も同じ額とする
+    # 簡単にするため、一時的に売値も買値も同じ額とする
     def _get_price_of(self, buy_or_sell, now_buy_price, now_sell_price):
         return now_buy_price
         # if buy_or_sell == Action.BUY.value or buy_or_sell == Action.STAY.value:
@@ -140,7 +140,7 @@ class FXTrade(gym.core.Env):
             self._logger.debug('   after: END OF DATA')
         
     ''' For Debug: 毎日00:00に買値を表示する。学習の進捗を確認するため。 '''
-    def _print_if_a_day_begins(self, now_datetime, now_buy_price):
+    def print_info_if_a_day_begins(self, now_datetime, now_buy_price):
         if now_datetime.hour == 0 and now_datetime.minute == 0:
             self._logger.info('%s %f' % (now_datetime, now_buy_price))
     
@@ -180,16 +180,17 @@ class FXTrade(gym.core.Env):
 
         # For Debug: 毎日00:00に買値を表示する。学習の進捗を確認するため。
         now_datetime = values_at_this_index.index[0]
-        self._print_if_a_day_begins(now_datetime, now_buy_price)
+        self.print_info_if_a_day_begins(now_datetime, now_buy_price)
         
         # 報酬は現金と総含み益
         reward = total_unrealized_gain + self.cash
+        self._logger.debug('reward: %f', reward)
 
         # 日付が学習データの最後と一致するか、含み損が初期の現金の1割以上で終了
         done = self._now_index >= self.hist_data.steps() or                 ((-reward) >= self.initial_cash * 0.1)
         if done:
-            print('now_datetime: %s' % now_datetime)
-            print('len(self.hist_data.data()) - 1: %d' % self.hist_data.steps())
+            self._logger.info('now_datetime: %s' % now_datetime)
+            self._logger.info('len(self.hist_data.data()) - 1: %d' % self.hist_data.steps())
         
         # 今注目している日時を更新
         self._increment_datetime()
@@ -211,17 +212,17 @@ class FXTrade(gym.core.Env):
         
     ''' 各episodeの開始時に呼ばれ、初期stateを返すように実装 '''
     def _reset(self):
-        print('_reset START')
-        print('self._seed: %i' % self._seed)
+        self._logger.info('_reset START')
+        self._logger.info('self._seed: %i' % self._seed)
         initial_index = 0
         
-        print('Start datetime: %s' % self.hist_data.date_at(initial_index))
+        self._logger.info('Start datetime: %s' % self.hist_data.date_at(initial_index))
         now_buy_price = self.hist_data.data().ix[[initial_index], ['Close']].Close.iloc[0]
         self._now_index = initial_index
         self._positions = []
-        print('_reset END')
+        self._logger.info('_reset END')
         next_state = now_buy_price
-        return np.array([0, next_state]) # 0をとりあえず入れておく（動かなくなったので）
+        return np.array([0, next_state])
     
 
 
