@@ -3,7 +3,6 @@ FROM jupyter/tensorflow-notebook
 USER root
 
 # Install python & screen, htop
-# for Python 3.5
 RUN apt-get update && apt-get -y install python-pip python-dev screen htop
 RUN cd /tmp && wget 'http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz' &&\
         tar -xzvf ta-lib-0.4.0-src.tar.gz &&\
