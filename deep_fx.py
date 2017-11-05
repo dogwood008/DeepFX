@@ -30,7 +30,7 @@ from fx_trade import FXTrade
 
 
 class DeepFX:
-    def __init__(self, env, mode, nb_steps=None,
+    def __init__(self, env, mode, episodes=1,
               log_directory='./logs', model_directory='./models',
               model_filename='Keras-RL_DQN_FX_model_meanq{mean_q:e}_episode{episode:05d}',
               prepared_model_filename=None,
@@ -44,6 +44,7 @@ class DeepFX:
         self._load_model_path = self._relative_path(model_directory, prepared_model_filename) 
         self._save_model_path = self._relative_path(model_directory, model_filename)
         self._env = env
+        self.episodes = episodes
 
     def setup(self):
         self._agent, self._model, self._memory, self._policy = self._initialize_agent()
@@ -122,12 +123,13 @@ class DeepFX:
             print(DebugTools.now_str())
             #minutes = 2591940/60 # 2591940secs = '2010-09-30 23:59:00' - '2010-09-01 00:00:00'
             #minutes = (60 * 24 - 1) * 1# a day * 1
-            minutes = (60 * 24 - 1) * 10# a day * 10
+            steps = env.hist_data.steps() * self.episodes
+            #minutes = (60 * 24 - 1) * 10# a day * 10
             #minutes = env.steps()
             #minutes = (60 * 24 - 1) * 2 # 2days
             #minutes = (60 * 24 - 1) * 10 * 9999999 # 10days * 9999999 Epochs
             #minutes = (60 * 24 - 1) * 30 * 9999999# 30days * 9999999 Epochs
-            history = agent.fit(env, nb_steps=minutes, visualize=False, verbose=2, nb_max_episode_steps=None,                              callbacks=callbacks)
+            history = agent.fit(env, nb_steps=steps, visualize=False, verbose=2, nb_max_episode_steps=None,                              callbacks=callbacks)
             elapsed_time = time.time() - start
             print(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
             print(DebugTools.now_str())

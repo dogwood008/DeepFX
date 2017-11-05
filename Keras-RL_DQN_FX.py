@@ -6,6 +6,8 @@
 # In[ ]:
 
 
+import matplotlib as mpl
+mpl.use('tkagg')
 import numpy as np
 import pandas as pd
 import talib
@@ -21,8 +23,10 @@ from deep_fx import DeepFX
 
 logger = getLogger(__name__)
 handler = StreamHandler()
-handler.setLevel(INFO)
-logger.setLevel(INFO)
+#handler.setLevel(INFO)
+#logger.setLevel(INFO)
+handler.setLevel(DEBUG)
+logger.setLevel(DEBUG)
 logger.addHandler(handler)
 
 
@@ -36,9 +40,10 @@ logger.addHandler(handler)
 #del(hist_data)
 #imp.reload(hist_data)
 #imp.reload(sys.modules[hist_data.__module__])
-hd = HistData(csv_path = 'historical_data/USDJPY.hst_.csv',
-                     begin_date='2010-09-01T00:00:00',
-                     end_date='2010-09-07T23:59:59')
+hd = HistData(csv_path = 'historical_data/DAT_ASCII_USDJPY_M1_201710_m5.csv',
+                     begin_date='2017-10-02T00:00:00',
+                     end_date='2017-10-02T23:59:59')
+                     #end_date='2017-10-09T23:59:59')
 
 
 # In[ ]:
@@ -54,22 +59,7 @@ hd.data()
 env = FXTrade(1000000, 0.08, hd, logger=logger)
 #env = FXTrade(1000000, 0.08, h, logger=logger)
 prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
-dfx = DeepFX(env, 'test', prepared_model_filename=prepared_model_filename)
-
-
-# In[ ]:
-
-
-#import imp
-#import sys
-#import deep_fx
-#from deep_fx import DeepFX
-##del(hist_data)
-##from deep
-##del(hist_data)
-#imp.reload(deep_fx)
-##imp.reload(sys.modules[deep_fx.__module__])
-##reload(deep_fx)
+dfx = DeepFX(env, 'test', prepared_model_filename=prepared_model_filename, episodes = 3)
 
 
 # In[ ]:
@@ -110,5 +100,5 @@ data.values
 # In[ ]:
 
 
-hd.data().ix[hd.data().idxmin()].index.rank()
+
 

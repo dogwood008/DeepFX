@@ -26,25 +26,15 @@ class FXTrade(gym.core.Env):
         self.cash = initial_cash
         self.spread = spread
         self._positions = []
-        #self._max_date = self._datetime2float(hist_data.dates().max())
-        #self._min_date = self._datetime2float(hist_data.dates().min())
         self._seed = seed_value
         self._logger = logger
         np.random.seed(seed_value)
-
-        max = hd.data().ix[hd.data()['Open'].idxman()]
-        min = hd.data().ix[hd.data()['Open'].idxmin()]
         
-        # x軸: 時間経過, y軸: 現在の1USDの価格（単位：円）
-        high = np.array([len(self.hist_data) - 1, max['Close']]) # [x軸最大値, y軸最大値]
-        low = np.array([0, hist_data.data()['Close'].min()]) # 0をとりあえず入れておく（動かなくなったので）
-        #high = np.array([self._max_date, hist_data.max_value()])
-        #low = np.array([self._min_date, hist_data.min_value()])
-        self.action_space = gym.spaces.Discrete(3)
-        self.observation_space = gym.spaces.Box(low = low, high = high) # DateFrame, Close prise
-        
-    def steps(self):
-        return len(self.hist_data.data());
+        # x軸: N番目の足（時間経過）, y軸: 現在の1USDの価格（単位：円）
+        high = np.array([self.hist_data.steps(), hist_data.data()['Close'].max()]) # [x軸最大値, y軸最大値]
+        low = np.array([0, hist_data.data()['Close'].min()]) # [x軸最小値, y軸最小値]
+        self.action_space = gym.spaces.Discrete(len(Action)) # Actionクラスで定義 買う、売る、なにもしないの3択
+        self.observation_space = gym.spaces.Box(low = low, high = high) # [N番目の足, Close price]
 
     def get_now_datetime_as(self, datetime_or_float):
         if datetime_or_float == 'float':
@@ -140,11 +130,14 @@ class FXTrade(gym.core.Env):
     ''' 今注目している日時を1つ進める（次の足を見る） '''
     def _increment_datetime(self):
         self._logger.debug('今注目している日時を更新 (=インデックスのインクリメント)')
-        before_datetime = self.hist_data.data().iloc[[self._now_index], :].index[0]
+        before_datetime = self.hist_data.date_at(self._now_index)
         self._logger.debug('  before: %06d [%s]' % (self._now_index, before_datetime))
         self._now_index += 1
-        after_datetime = self.hist_data.data().iloc[[self._now_index], :].index[0]
-        self._logger.debug('   after: %06d [%s]' % (self._now_index, after_datetime))
+        try:
+            after_datetime = self.hist_data.date_at(self._now_index)
+            self._logger.debug('   after: %06d [%s]' % (self._now_index, after_datetime))
+        except:
+            self._logger.debug('   after: END OF DATA')
         
     ''' For Debug: 毎日00:00に買値を表示する。学習の進捗を確認するため。 '''
     def _print_if_a_day_begins(self, now_datetime, now_buy_price):
@@ -176,7 +169,9 @@ class FXTrade(gym.core.Env):
         assert buy_or_sell_or_stay == -1 or             buy_or_sell_or_stay == 0 or             buy_or_sell_or_stay == 1, 'buy_or_sell_or_stay: %d' % buy_or_sell_or_stay
         
         # ポジションの手仕舞い、または追加オーダーをする
-        now_price = now_sell_price = now_buy_price =             self.hist_data.data().ix[[self._now_index], ['Close']].Close.iloc[0]
+        values_at_this_index = self.hist_data.values_at(self._now_index)
+        # 簡単にするため、スプレッドは一旦考えない
+        now_price = now_sell_price = now_buy_price = values_at_this_index.Close[0]
         self._close_or_more_order(buy_or_sell_or_stay, now_buy_price)
         
         # 現在の総含み益の合計値を再計算
@@ -184,23 +179,23 @@ class FXTrade(gym.core.Env):
             now_buy_price, now_sell_price)
 
         # For Debug: 毎日00:00に買値を表示する。学習の進捗を確認するため。
-        now_datetime = self.hist_data.data().iloc[[self._now_index], :].index[0]
+        now_datetime = values_at_this_index.index[0]
         self._print_if_a_day_begins(now_datetime, now_buy_price)
         
         # 報酬は現金と総含み益
         reward = total_unrealized_gain + self.cash
 
         # 日付が学習データの最後と一致するか、含み損が初期の現金の1割以上で終了
-        done = (self._now_index >= len(self.hist_data.data()) - 1 - 1) or                 ((-reward) >= self.initial_cash * 0.1)
+        done = self._now_index >= self.hist_data.steps() or                 ((-reward) >= self.initial_cash * 0.1)
         if done:
             print('now_datetime: %s' % now_datetime)
-            print('len(self.hist_data.data()) - 1: %d' % (len(self.hist_data.data()) - 1))
+            print('len(self.hist_data.data()) - 1: %d' % self.hist_data.steps())
         
         # 今注目している日時を更新
         self._increment_datetime()
         
         # その時点における値群
-        now_buy_price = self.hist_data.data().ix[[self._now_index], ['Close']].Close.iloc[0]
+        next_buy_price = self.hist_data.close_at(self._now_index)
         # 次のアクションが未定のため、買値を渡す
         # now_sell_price = now_buy_price - self.spread
         # 
@@ -212,7 +207,7 @@ class FXTrade(gym.core.Env):
         # 次のstate、reward、終了したかどうか、追加情報の順に返す
         # 追加情報は特にないので空dict
         self._logger.debug('_step ENDED')
-        return np.array([0, now_buy_price]), reward, done, {} # 0をとりあえず入れておく（動かなくなったので）
+        return np.array([self._now_index, next_buy_price]), reward, done, {} # 0をとりあえず入れておく（動かなくなったので）
         
     ''' 各episodeの開始時に呼ばれ、初期stateを返すように実装 '''
     def _reset(self):
@@ -220,7 +215,7 @@ class FXTrade(gym.core.Env):
         print('self._seed: %i' % self._seed)
         initial_index = 0
         
-        print('Start datetime: %s' % self.hist_data.dates()[initial_index])
+        print('Start datetime: %s' % self.hist_data.date_at(initial_index))
         now_buy_price = self.hist_data.data().ix[[initial_index], ['Close']].Close.iloc[0]
         self._now_index = initial_index
         self._positions = []
