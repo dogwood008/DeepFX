@@ -6,8 +6,11 @@
 # In[ ]:
 
 
+import matplotlib as mpl
+mpl.use('tkagg')
 import numpy as np
 import pandas as pd
+import talib
 from logging import getLogger, StreamHandler, DEBUG, INFO
 
 from hist_data import HistData
@@ -20,24 +23,43 @@ from deep_fx import DeepFX
 
 logger = getLogger(__name__)
 handler = StreamHandler()
-handler.setLevel(INFO)
-logger.setLevel(INFO)
+#handler.setLevel(INFO)
+#logger.setLevel(INFO)
+handler.setLevel(DEBUG)
+logger.setLevel(DEBUG)
 logger.addHandler(handler)
 
 
 # In[ ]:
 
 
-h = HistData('2010/9')
+#import imp
+#import sys
+#del(hist_data)
+#from hist_data import HistData
+#del(hist_data)
+#imp.reload(hist_data)
+#imp.reload(sys.modules[hist_data.__module__])
+hd = HistData(csv_path = 'historical_data/DAT_ASCII_USDJPY_M1_201710_m5.csv',
+                     begin_date='2017-10-02T00:00:00',
+                     end_date='2017-10-02T23:59:59')
+                     #end_date='2017-10-09T23:59:59')
 
 
 # In[ ]:
 
 
-env = FXTrade(1000000, 0.08, h, logger=logger)
+hd.data()
+#len(hist_data.data())
+
+
+# In[ ]:
+
+
+env = FXTrade(1000000, 0.08, hd, logger=logger)
 #env = FXTrade(1000000, 0.08, h, logger=logger)
 prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
-dfx = DeepFX(env, 'test', prepared_model_filename=prepared_model_filename)
+dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, episodes = 3)
 
 
 # In[ ]:
@@ -56,10 +78,12 @@ else:
 get_ipython().magic('matplotlib notebook')
 import matplotlib.pyplot as plt
 import numpy as np
-data = h.data()['2010-09']['Close']
+data = hd.data()['Close']
 x = data.index
-y  = data.values
-plt.plot(x, y)
+y = data.values
+sd = 1
+upper, middle, lower = talib.BBANDS(data.values, timeperiod=20, matype=talib.MA_Type.SMA, nbdevup=sd, nbdevdn=sd)
+[plt.plot(x, val) for val in [y, upper, middle, lower]]
 
 
 # In[ ]:
@@ -67,6 +91,11 @@ plt.plot(x, y)
 
 data.values
 
+
+# ## References
+# 
+# - [Deep Q-LearningでFXしてみた](http://recruit.gmo.jp/engineer/jisedai/blog/deep-q-learning/)
+# - [slide](https://www.slideshare.net/JunichiroKatsuta/deep-qlearningfx)
 
 # In[ ]:
 

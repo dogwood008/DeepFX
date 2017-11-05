@@ -17,5 +17,14 @@ class Action(enum.Enum):
 # In[ ]:
 
 
+if __name__ == '__main__':
+    print(Action.BUY)
+    print(repr(Action.BUY))
+    print(len(Action))
+
+
+# In[ ]:
+
+
 
 
