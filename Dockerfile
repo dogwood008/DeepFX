@@ -1,8 +1,9 @@
-FROM jupyter/datascience-notebook
+FROM jupyter/tensorflow-notebook
 
 USER root
 
 # Install python & screen, htop
+# for Python 3.5
 RUN apt-get update && apt-get -y install python-pip python-dev screen htop
 RUN cd /tmp && wget 'http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz' &&\
         tar -xzvf ta-lib-0.4.0-src.tar.gz &&\
@@ -17,7 +18,7 @@ RUN pip install --upgrade pip
 
 # Install pip packages
 USER jovyan
-RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym google-api-python-client jupyter_contrib_nbextensions jupyterthemes google-api-python-client
+RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym google-api-python-client jupyter_contrib_nbextensions jupyterthemes google-api-python-client google-cloud-logging
 
 # Install tensorflow
 RUN if [ -z ${USE_GPU+x} ]; \
