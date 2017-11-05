@@ -1,4 +1,4 @@
-FROM jupyter/datascience-notebook
+FROM nvidia/cuda:8.0-cudnn5-runtime-ubuntu14.04
 
 USER root
 
