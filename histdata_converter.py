@@ -27,7 +27,7 @@ def get_new_index(old_dataframe, freq='5min'):
     return new_index
 
 def create_dataframe(dataarray):
-    new_df = pd.DataFrame.from_records(dataarray,                          index=['date'], columns=['date', 'open', 'high', 'low', 'close', 'volume'])
+    new_df = pd.DataFrame.from_records(dataarray,                          index=['date'], columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
     return new_df
 
 def create_new_dataarray(old_dataframe, new_index, i):
