@@ -50,7 +50,7 @@ class DeepFX:
     def setup(self):
         self._agent, self._model, self._memory, self._policy = self._initialize_agent()
         self._agent.compile('adam')
-        print(self._model.summary())
+        logger.debug(self._model.summary())
 
     def train(self, is_for_time_measurement=False, wipe_instance_variables_after=True):
         self.setup()
@@ -63,7 +63,7 @@ class DeepFX:
         self.setup()
         self._agent.test(self._env, nb_episodes=episodes, visualize=False, callbacks=callbacks)
 
-        get_ipython().magic('matplotlib inline')
+        get_ipython().run_line_magic('matplotlib', 'inline')
         import matplotlib.pyplot as plt
 
         for obs in callbacks[0].rewards.values():
@@ -121,11 +121,11 @@ class DeepFX:
     def _fit(self, agent, is_for_time_measurement, env, callbacks=[]):
         if is_for_time_measurement:
             start = time.time()
-            print(DebugTools.now_str())
+            logger.debug(DebugTools.now_str())
             history = agent.fit(env, nb_steps=self.steps, visualize=False, verbose=2, nb_max_episode_steps=None,                              callbacks=callbacks)
             elapsed_time = time.time() - start
-            print(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
-            print(DebugTools.now_str())
+            logger.info(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
+            logger.debug(DebugTools.now_str())
         else:
             history = agent.fit(env, nb_steps=50000, visualize=True, verbose=2, nb_max_episode_steps=None)
         #学習の様子を描画したいときは、Envに_render()を実装して、visualize=True にします,
