@@ -1,0 +1,13 @@
+version: '3'
+services:
+  jupyter:
+    build: ./Dockercompose.for_paperspace
+    ports: 
+      - '8888:8888'
+    volumes:
+      - './:/home/jovyan'
+    environment:
+      - SLACK_INCOMING_WEBHOOK_URL=$SLACK_INCOMING_WEBHOOK_URL
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+      - JUPYTER_PASSWORD_HASH=$JUPYTER_PASSWORD_HASH
