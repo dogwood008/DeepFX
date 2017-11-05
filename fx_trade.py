@@ -58,7 +58,7 @@ class FXTrade(gym.core.Env):
             
     def setseed(self, seed_value):
         self._seed = seed_value
-        self._logger.info('Set seed value: %d' % self._seed)
+        self._logger.warn('Set seed value: %d' % self._seed)
         return seed_value
         
     def _seed(self):
@@ -84,12 +84,12 @@ class FXTrade(gym.core.Env):
     def _calc_total_unrealized_gain_by(self, now_buy_price, now_sell_price):
         positions_buy_or_sell = None
         if self._positions:
-            self._logger.debug('現在の総含み益を再計算')
+            self._logger.info('現在の総含み益を再計算')
             positions_buy_or_sell = self._positions[0].buy_or_sell
-            self._logger.debug('buy_or_sell: %d' % positions_buy_or_sell)
+            self._logger.info('buy_or_sell: %d' % positions_buy_or_sell)
         else:
             positions_buy_or_sell = Action.BUY.value
-        self._logger.debug('positions_buy_or_sell: %d', positions_buy_or_sell)
+        self._logger.info('positions_buy_or_sell: %d', positions_buy_or_sell)
         now_price_for_positions = self._get_price_of(positions_buy_or_sell, now_buy_price, now_sell_price)
         
         if not self._positions: # positions is empty
@@ -129,20 +129,20 @@ class FXTrade(gym.core.Env):
 
     ''' 今注目している日時を1つ進める（次の足を見る） '''
     def _increment_datetime(self):
-        self._logger.debug('今注目している日時を更新 (=インデックスのインクリメント)')
+        self._logger.info('今注目している日時を更新 (=インデックスのインクリメント)')
         before_datetime = self.hist_data.date_at(self._now_index)
-        self._logger.debug('  before: %06d [%s]' % (self._now_index, before_datetime))
+        self._logger.info('  before: %06d [%s]' % (self._now_index, before_datetime))
         self._now_index += 1
         try:
             after_datetime = self.hist_data.date_at(self._now_index)
-            self._logger.debug('   after: %06d [%s]' % (self._now_index, after_datetime))
+            self._logger.info('   after: %06d [%s]' % (self._now_index, after_datetime))
         except:
-            self._logger.debug('   after: END OF DATA')
+            self._logger.info('   after: END OF DATA')
         
     ''' For Debug: 毎日00:00に買値を表示する。学習の進捗を確認するため。 '''
     def print_info_if_a_day_begins(self, now_datetime, now_buy_price):
         if now_datetime.hour == 0 and now_datetime.minute == 0:
-            self._logger.info('%s %f' % (now_datetime, now_buy_price))
+            self._logger.warn('%s %f' % (now_datetime, now_buy_price))
     
     ''' ポジションの手仕舞い、または追加オーダーをする '''
     def _close_or_more_order(self, buy_or_sell_or_stay, now_price):
@@ -162,7 +162,7 @@ class FXTrade(gym.core.Env):
     ''' 各stepごとに呼ばれる
         actionを受け取り、次のstateとreward、episodeが終了したかどうかを返すように実装 '''
     def _step(self, action):
-        self._logger.debug('_step %06d STARTED' % self._now_index)
+        self._logger.info('_step %06d STARTED' % self._now_index)
         
         # actionを受け取り、次のstateを決定
         buy_or_sell_or_stay = action - 1
@@ -184,13 +184,13 @@ class FXTrade(gym.core.Env):
         
         # 報酬は現金と総含み益
         reward = total_unrealized_gain + self.cash
-        self._logger.debug('reward: %f', reward)
+        self._logger.info('reward: %f', reward)
 
         # 日付が学習データの最後と一致するか、含み損が初期の現金の1割以上で終了
         done = self._now_index >= self.hist_data.steps() or                 ((-reward) >= self.initial_cash * 0.1)
         if done:
-            self._logger.info('now_datetime: %s' % now_datetime)
-            self._logger.info('len(self.hist_data.data()) - 1: %d' % self.hist_data.steps())
+            self._logger.warn('now_datetime: %s' % now_datetime)
+            self._logger.warn('len(self.hist_data.data()) - 1: %d' % self.hist_data.steps())
         
         # 今注目している日時を更新
         self._increment_datetime()
@@ -207,27 +207,21 @@ class FXTrade(gym.core.Env):
         
         # 次のstate、reward、終了したかどうか、追加情報の順に返す
         # 追加情報は特にないので空dict
-        self._logger.debug('_step ENDED')
+        self._logger.info('_step ENDED')
         return np.array([self._now_index, next_buy_price]), reward, done, {} # 0をとりあえず入れておく（動かなくなったので）
         
     ''' 各episodeの開始時に呼ばれ、初期stateを返すように実装 '''
     def _reset(self):
-        self._logger.info('_reset START')
-        self._logger.info('self._seed: %i' % self._seed)
+        self._logger.warn('_reset START')
+        self._logger.warn('self._seed: %i' % self._seed)
         initial_index = 0
         
-        self._logger.info('Start datetime: %s' % self.hist_data.date_at(initial_index))
+        self._logger.warn('Start datetime: %s' % self.hist_data.date_at(initial_index))
         now_buy_price = self.hist_data.data().ix[[initial_index], ['Close']].Close.iloc[0]
         self._now_index = initial_index
         self._positions = []
-        self._logger.info('_reset END')
+        self._logger.warn('_reset END')
         next_state = now_buy_price
         return np.array([0, next_state])
     
-
-
-# In[ ]:
-
-
-
 

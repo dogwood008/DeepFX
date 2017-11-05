@@ -1,4 +1,4 @@
-FROM jupyter/datascience-notebook
+FROM jupyter/tensorflow-notebook
 
 USER root
 
@@ -17,7 +17,7 @@ RUN pip install --upgrade pip
 
 # Install pip packages
 USER jovyan
-RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym google-api-python-client jupyter_contrib_nbextensions jupyterthemes google-api-python-client
+RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym google-api-python-client jupyter_contrib_nbextensions jupyterthemes google-api-python-client google-cloud-logging
 
 # Install tensorflow
 RUN if [ -z ${USE_GPU+x} ]; \

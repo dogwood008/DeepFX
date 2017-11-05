@@ -34,7 +34,8 @@ class DeepFX:
               log_directory='./logs', model_directory='./models',
               model_filename='Keras-RL_DQN_FX_model_meanq{mean_q:e}_episode{episode:05d}',
               prepared_model_filename=None,
-              weights_filename='Keras-RL_DQN_FX_weights.h5',):
+              weights_filename='Keras-RL_DQN_FX_weights.h5',
+              logger=None):
 
         self._log_directory = log_directory
         self._model_directory = model_directory
@@ -45,12 +46,13 @@ class DeepFX:
         self._save_model_path = self._relative_path(model_directory, model_filename)
         self._env = env
         self.steps = steps
+        self._logger = logger
         
 
     def setup(self):
         self._agent, self._model, self._memory, self._policy = self._initialize_agent()
         self._agent.compile('adam')
-        print(self._model.summary())
+        self._logger.info(self._model.summary())
 
     def train(self, is_for_time_measurement=False, wipe_instance_variables_after=True):
         self.setup()
@@ -63,7 +65,7 @@ class DeepFX:
         self.setup()
         self._agent.test(self._env, nb_episodes=episodes, visualize=False, callbacks=callbacks)
 
-        get_ipython().magic('matplotlib inline')
+        get_ipython().run_line_magic('matplotlib', 'inline')
         import matplotlib.pyplot as plt
 
         for obs in callbacks[0].rewards.values():
@@ -115,17 +117,18 @@ class DeepFX:
     def _get_callbacks(self):
         tensor_board_callback = MyTensorBoard(log_dir=self._log_directory, histogram_freq=1, embeddings_layer_names=True, write_graph=True)
         model_saver_callback = ModelSaver(self._save_model_path, monitor='mean_q', mode='max')
-        callbacks = [tensor_board_callback, model_saver_callback]
+        episode_logger_callback = EpisodeLogger(logger=self._logger)
+        callbacks = [tensor_board_callback, model_saver_callback, episode_logger_callback]
         return callbacks
 
     def _fit(self, agent, is_for_time_measurement, env, callbacks=[]):
         if is_for_time_measurement:
             start = time.time()
-            print(DebugTools.now_str())
+            self._logger.info(DebugTools.now_str())
             history = agent.fit(env, nb_steps=self.steps, visualize=False, verbose=2, nb_max_episode_steps=None,                              callbacks=callbacks)
             elapsed_time = time.time() - start
-            print(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
-            print(DebugTools.now_str())
+            self._logger.warn(("elapsed_time:{0}".format(elapsed_time)) + "[sec]")
+            self._logger.info(DebugTools.now_str())
         else:
             history = agent.fit(env, nb_steps=50000, visualize=True, verbose=2, nb_max_episode_steps=None)
         #学習の様子を描画したいときは、Envに_render()を実装して、visualize=True にします,
