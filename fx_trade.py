@@ -58,7 +58,7 @@ class FXTrade(gym.core.Env):
             
     def setseed(self, seed_value):
         self._seed = seed_value
-        self._logger.warn('Set seed value: %d' % self._seed)
+        self._logger.info('Set seed value: %d' % self._seed)
         return seed_value
         
     def _seed(self):
@@ -142,7 +142,7 @@ class FXTrade(gym.core.Env):
     ''' For Debug: 毎日00:00に買値を表示する。学習の進捗を確認するため。 '''
     def print_info_if_a_day_begins(self, now_datetime, now_buy_price):
         if now_datetime.hour == 0 and now_datetime.minute == 0:
-            self._logger.warn('%s %f' % (now_datetime, now_buy_price))
+            self._logger.info('%s %f' % (now_datetime, now_buy_price))
     
     ''' ポジションの手仕舞い、または追加オーダーをする '''
     def _close_or_more_order(self, buy_or_sell_or_stay, now_price):
@@ -162,7 +162,7 @@ class FXTrade(gym.core.Env):
     ''' 各stepごとに呼ばれる
         actionを受け取り、次のstateとreward、episodeが終了したかどうかを返すように実装 '''
     def _step(self, action):
-        self._logger.info('_step %06d STARTED' % self._now_index)
+        self._logger.info('_step %08d STARTED' % self._now_index)
         
         # actionを受け取り、次のstateを決定
         buy_or_sell_or_stay = action - 1
@@ -189,8 +189,9 @@ class FXTrade(gym.core.Env):
         # 日付が学習データの最後と一致するか、含み損が初期の現金の1割以上で終了
         done = self._now_index >= self.hist_data.steps() or                 ((-reward) >= self.initial_cash * 0.1)
         if done:
-            self._logger.warn('now_datetime: %s' % now_datetime)
-            self._logger.warn('len(self.hist_data.data()) - 1: %d' % self.hist_data.steps())
+            self._logger.info('Finished (done==True)')
+            self._logger.info('now_datetime: %s' % now_datetime)
+            self._logger.info('len(self.hist_data.data()) - 1: %d' % self.hist_data.steps())
         
         # 今注目している日時を更新
         self._increment_datetime()
@@ -212,15 +213,15 @@ class FXTrade(gym.core.Env):
         
     ''' 各episodeの開始時に呼ばれ、初期stateを返すように実装 '''
     def _reset(self):
-        self._logger.warn('_reset START')
-        self._logger.warn('self._seed: %i' % self._seed)
+        self._logger.info('_reset START')
+        self._logger.info('self._seed: %i' % self._seed)
         initial_index = 0
         
-        self._logger.warn('Start datetime: %s' % self.hist_data.date_at(initial_index))
+        self._logger.info('Start datetime: %s' % self.hist_data.date_at(initial_index))
         now_buy_price = self.hist_data.data().ix[[initial_index], ['Close']].Close.iloc[0]
         self._now_index = initial_index
         self._positions = []
-        self._logger.warn('_reset END')
+        self._logger.info('_reset END')
         next_state = now_buy_price
         return np.array([0, next_state])
     
