@@ -197,7 +197,12 @@ class FXTrade(gym.core.Env):
         self._increment_datetime()
         
         # その時点における値群
-        next_buy_price = self.hist_data.close_at(self._now_index)
+        try:
+            next_buy_price = self.hist_data.close_at(self._now_index)
+        except IndexError as e:
+            done = True
+            self._logger.warning('IndexError %s' % e)
+            
         # 次のアクションが未定のため、買値を渡す
         # now_sell_price = now_buy_price - self.spread
         # 

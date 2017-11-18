@@ -17,7 +17,7 @@ RUN pip install --upgrade pip
 
 # Install pip packages
 USER jovyan
-RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym google-api-python-client jupyter_contrib_nbextensions jupyterthemes google-api-python-client google-cloud-logging crcmod
+RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym google-api-python-client jupyter_contrib_nbextensions jupyterthemes google-api-python-client google-cloud-logging crcmod google-cloud-storage
 
 # Install tensorflow
 RUN if [ -z ${USE_GPU+x} ]; \

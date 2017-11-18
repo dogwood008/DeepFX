@@ -14,7 +14,9 @@ import numpy as np
 
 
 class ModelSaver(rl.callbacks.TrainEpisodeLogger):
-    def __init__(self, filepath, monitor='loss', verbose=1, save_best_only=True, mode='min', save_weights_only=False):
+    def __init__(self, filepath, monitor='loss', verbose=1, 
+                 save_best_only=True, mode='min', save_weights_only=False,
+                 logger=None):
         if filepath is None:
             raise ValueError('Give value to filepath. (Given: %s)' % filepath)
         self.best_monitor_value = None
@@ -27,16 +29,17 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
         if mode not in ('min', 'max'):
             raise ValueError("Give 'min' or 'max' to mode. (Given: %s)" % mode)
         self.mode = mode
+        self._logger = logger
         
         super().__init__()
 
     def on_episode_end(self, episode, logs):
-        print('========== Model Saver output ==============')
+        self._logger.warn('========== Model Saver output ==============')
         try:
             monitor_value = float(self._formatted_metrics(episode)[self.monitor])
         except:
             monitor_value = 0.0
-        print('%s value: %e' % (self.monitor, monitor_value))
+        self._logger.warn('%s value: %e' % (self.monitor, monitor_value))
         values = {'episode': episode, self.monitor: monitor_value}
         if not self.save_best_only:
             values['previous_monitor'] = monitor_value
@@ -46,10 +49,10 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
             self.best_monitor_value = monitor_value
             values['previous_monitor'] = previous_value
             self._save_model(values)
-            print('%s %s value: %e' % (self.mode, self.monitor, self.best_monitor_value))
+            self._logger.warn('%s %s value: %e' % (self.mode, self.monitor, self.best_monitor_value))
         #except:
-        #    print('Not a float value given.')
-        print('========== /Model Saver output =============')
+        #    self._logger.warn('Not a float value given.')
+        self._logger.warn('========== /Model Saver output =============')
         super().on_episode_end(episode, logs)
 
     def _is_this_episode_improved(self, monitor_value):
@@ -62,16 +65,16 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
         previous_monitor = kwargs['previous_monitor']
         filepath = self.filepath.format_map(kwargs)
         if self.verbose > 0:
-            print("Step %05d: model improved\n  from %e\n    to %e,"
+            self._logger.warn("Step %05d: model improved\n  from %e\n    to %e,"
                   ' saving model to %s'
                   % (self.step, previous_monitor or 0.0,
                      self.best_monitor_value or 0.0, filepath))
         if self.save_weights_only:
             self.model.save_weights(filepath + '.hdf5', overwrite=True)
-            print('Save weights to %s has done.' % filepath)
+            self._logger.warn('Save weights to %s has done.' % filepath)
         else:
             self.model.model.save(filepath + '.h5', overwrite=True)
-            print('Save model to %s has done.' % filepath)
+            self._logger.warn('Save model to %s has done.' % filepath)
 
     def _formatted_metrics(self, episode):
         # Format all metrics.

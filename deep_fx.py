@@ -116,7 +116,7 @@ class DeepFX:
         
     def _get_callbacks(self):
         tensor_board_callback = MyTensorBoard(log_dir=self._log_directory, histogram_freq=1, embeddings_layer_names=True, write_graph=True)
-        model_saver_callback = ModelSaver(self._save_model_path, monitor='mean_q', mode='max')
+        model_saver_callback = ModelSaver(self._save_model_path, monitor='mean_q', mode='max', logger=self._logger)
         episode_logger_callback = EpisodeLogger(logger=self._logger)
         callbacks = [tensor_board_callback, model_saver_callback, episode_logger_callback]
         return callbacks

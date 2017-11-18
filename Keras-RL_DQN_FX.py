@@ -68,7 +68,7 @@ def init_logger(sd_loglevel=logging.WARN, stream_loglevel=logging.CRITICAL):
 # In[ ]:
 
 
-deepfx_logger = init_logger()
+deepfx_logger = init_logger(stream_loglevel=None)
 deepfx_logger.critical('DeepFX Started: %s' % DebugTools.now_str())
 deepfx_logger.debug   ('loglevel debug    test')
 deepfx_logger.info    ('loglevel info     test')
@@ -89,7 +89,7 @@ hd = HistData(csv_path = 'historical_data/DAT_ASCII_USDJPY_M1_201710_m5.csv',
 
 
 hd.data()
-#len(hist_data.data())
+len(hd.data())
 
 
 # In[ ]:
