@@ -41,4 +41,5 @@ RUN jupyter contrib nbextension install --user --skip-running-check && \
 
 ADD .screenrc /home/jovyan/
 ADD jupyter_notebook_config.py /home/jovyan/.jupyter/
+ENV TZ JST-9
 CMD start-notebook.sh

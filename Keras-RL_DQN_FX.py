@@ -141,3 +141,19 @@ data.values
 # 
 # - [Deep Q-LearningでFXしてみた](http://recruit.gmo.jp/engineer/jisedai/blog/deep-q-learning/)
 # - [slide](https://www.slideshare.net/JunichiroKatsuta/deep-qlearningfx)
+
+# ## TODO
+# 
+# 足の配列について、indexの外を読み出そうとしている節があるので直す。
+# 
+# ```json
+# {
+#  insertId:  "1l630l2g1k8tnms"  
+#  jsonPayload: {…}  
+#  logName:  "projects/deep-fx/logs/deepfx"  
+#  receiveTimestamp:  "2017-11-18T17:12:18.459939016Z"  
+#  resource: {…}  
+#  severity:  "WARNING"  
+#  timestamp:  "2017-11-18T17:12:18.459939016Z"  
+# }
+# ```

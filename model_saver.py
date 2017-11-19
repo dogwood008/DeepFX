@@ -8,6 +8,7 @@ import warnings
 import itertools
 import rl.callbacks
 import numpy as np
+from google_cloud_storage import GoogleCloudStorage
 
 
 # In[ ]:
@@ -16,6 +17,7 @@ import numpy as np
 class ModelSaver(rl.callbacks.TrainEpisodeLogger):
     def __init__(self, filepath, monitor='loss', verbose=1, 
                  save_best_only=True, mode='min', save_weights_only=False,
+                 upload_to_gcs=True,
                  logger=None):
         if filepath is None:
             raise ValueError('Give value to filepath. (Given: %s)' % filepath)
@@ -29,6 +31,10 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
         if mode not in ('min', 'max'):
             raise ValueError("Give 'min' or 'max' to mode. (Given: %s)" % mode)
         self.mode = mode
+        if upload_to_gcs:
+            self.gcs = GoogleCloudStorage()
+        else:
+            self.gcs = None
         self._logger = logger
         
         super().__init__()
@@ -65,16 +71,25 @@ class ModelSaver(rl.callbacks.TrainEpisodeLogger):
         previous_monitor = kwargs['previous_monitor']
         filepath = self.filepath.format_map(kwargs)
         if self.verbose > 0:
-            self._logger.warn("Step %05d: model improved\n  from %e\n    to %e,"
+            self._logger.warn("Step %08d: model improved\n  from %e\n    to %e,"
                   ' saving model to %s'
                   % (self.step, previous_monitor or 0.0,
                      self.best_monitor_value or 0.0, filepath))
         if self.save_weights_only:
-            self.model.save_weights(filepath + '.hdf5', overwrite=True)
+            saved_file_path = filepath + '.hdf5'
+            self.model.save_weights(saved_file_path, overwrite=True)
             self._logger.warn('Save weights to %s has done.' % filepath)
         else:
-            self.model.model.save(filepath + '.h5', overwrite=True)
+            saved_file_path = filepath + '.h5'
+            self.model.model.save(saved_file_path, overwrite=True)
             self._logger.warn('Save model to %s has done.' % filepath)
+        self._upload_model_to_gcs(saved_file_path)
+        self._logger.warn('Save file %s to GCS has done.' % filepath)
+
+    def _upload_model_to_gcs(self, model_file_path):
+        if not self.gcs:
+            return
+        self.gcs.upload_model(model_file_path)
 
     def _formatted_metrics(self, episode):
         # Format all metrics.

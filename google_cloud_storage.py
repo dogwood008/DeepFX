@@ -6,6 +6,7 @@
 
 import os
 from google.cloud import storage
+from datetime import datetime
 
 
 # In[ ]:
@@ -17,8 +18,9 @@ class GoogleCloudStorage:
         self.client = storage.Client.from_service_account_json(service_account_json_path)
         self.bucket = self.client.bucket(bucket_name)
 
-    def models_path(self, path='models'):
-        return path
+    def models_path(self, datetime=datetime.now().strftime('%y%m%d_%H%M%S'),
+                    path='models'):
+        return '%s/%s' % (datetime, path)
     
     def upload(self, local_file_path, remote_dest_path):
         blob = self.bucket.blob(remote_dest_path)
