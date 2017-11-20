@@ -11,7 +11,7 @@ import time
 import os
 import warnings
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten
+from keras.layers import Dense, Activation, Flatten, InputLayer
 from keras.optimizers import Adam
 
 from rl.agents.dqn import DQNAgent
@@ -88,13 +88,9 @@ class DeepFX:
             # DQNのネットワーク定義
             model = Sequential()
             model.add(Flatten(input_shape=(1,) + observation_space_shape))
-            #model.add(Flatten(input_shape=observation_space_shape))
-        #    model.add(Dense(4))
-        #    model.add(Activation('relu'))
-        #    model.add(Dense(4))
-        #    model.add(Activation('relu'))
-            model.add(Dense(nb_actions))
-            model.add(Activation('relu'))
+            #model.add(InputLayer(input_shape=(1,) + observation_space_shape))
+            model.add(Dense(3, activation='relu'))
+            model.add(Dense(nb_actions, activation='linear'))
         else:
             model = keras.models.load_model(load_model_path)
         return model
