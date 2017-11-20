@@ -27,7 +27,7 @@ def get_new_index(old_dataframe, freq='5min'):
     return new_index
 
 def create_dataframe(dataarray):
-    new_df = pd.DataFrame.from_records(dataarray,                          index=['date'], columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+    new_df = pd.DataFrame.from_records(dataarray,                          index=['Date'], columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
     return new_df
 
 def create_new_dataarray(old_dataframe, new_index, i):
@@ -36,11 +36,11 @@ def create_new_dataarray(old_dataframe, new_index, i):
     slice = old_dataframe.loc[start:end][:-1]
     if len(slice) is 0:
         return
-    open = slice.ix[0:1]['open'][0]
-    high = max(slice['high'])
-    low = min(slice['low'])
-    close = slice.ix[-1:]['close'][0]
-    volume = slice.sum()['volume']
+    open = slice.ix[0:1]['Open'][0]
+    high = max(slice['High'])
+    low = min(slice['Low'])
+    close = slice.ix[-1:]['Close'][0]
+    volume = slice.sum()['Volume']
     return np.array([start, open, high, low, close, volume])
 
 def create_new_dataframe(old_dataframe, freq='5min'):
@@ -55,20 +55,8 @@ def create_new_dataframe(old_dataframe, freq='5min'):
 
 
 read_filepath = 'historical_data/DAT_ASCII_USDJPY_M1_201710.csv'
-write_filepath = 'historical_data/DAT_ASCII_USDJPY_M1_201710_m5.csv'
+write_filepath = 'historical_data/DAT_ASCII_USDJPY_M1_201710_h1.csv'
 hd = HistData(read_filepath)
-new_df = create_new_dataframe(hd.data())
-new_df.to_csv(write_filepath, sep=';', header=['open', 'high', 'low', 'close', 'volume'])
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
+new_df = create_new_dataframe(hd.data(), freq='1h')
+new_df.to_csv(write_filepath, sep=';', header=['Open', 'High', 'Low', 'Close', 'Volume'])
 

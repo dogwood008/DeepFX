@@ -197,11 +197,16 @@ class FXTrade(gym.core.Env):
         self._increment_datetime()
         
         # その時点における値群
-        try:
-            next_buy_price = self.hist_data.close_at(self._now_index)
-        except IndexError as e:
+        if self._now_index >= self.hist_data.steps():
             done = True
-            self._logger.warning('IndexError %s' % e)
+            next_buy_price = 0
+        else:
+            try:
+                next_buy_price = self.hist_data.close_at(self._now_index)
+            except IndexError as e:
+                # ここに到達するはずはないが、念のため
+                done = True
+                self._logger.critical('IndexError %s' % e)
             
         # 次のアクションが未定のため、買値を渡す
         # now_sell_price = now_buy_price - self.spread
@@ -214,7 +219,7 @@ class FXTrade(gym.core.Env):
         # 次のstate、reward、終了したかどうか、追加情報の順に返す
         # 追加情報は特にないので空dict
         self._logger.info('_step ENDED')
-        return np.array([self._now_index, next_buy_price]), reward, done, {} # 0をとりあえず入れておく（動かなくなったので）
+        return np.array([self._now_index, next_buy_price]), reward, done, {}
         
     ''' 各episodeの開始時に呼ばれ、初期stateを返すように実装 '''
     def _reset(self):
