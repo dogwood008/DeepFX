@@ -80,9 +80,9 @@ deepfx_logger.critical('loglevel critical test')
 # In[ ]:
 
 
-hd = HistData(csv_path = 'historical_data/DAT_ASCII_USDJPY_M1_201710_m5.csv',
+hd = HistData(csv_path = 'historical_data/DAT_ASCII_USDJPY_M1_201710_h1.csv',
                      begin_date='2017-10-02T00:00:00',
-                     end_date='2017-10-09T23:59:59')
+                     end_date='2017-10-02T01:59:59')
 
 
 # In[ ]:

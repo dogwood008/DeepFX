@@ -13,3 +13,8 @@ services:
       - JUPYTER_PASSWORD_HASH=$JUPYTER_PASSWORD_HASH
       - GOOGLE_SERVICE_ACCOUNT_JSON_PATH=$GOOGLE_SERVICE_ACCOUNT_JSON_PATH
       - GOOGLE_CLOUD_STORAGE_BUCKET=$GOOGLE_CLOUD_STORAGE_BUCKET
+  tensorboard:
+    build: .
+    ports:
+      - '3000:3000'
+    command: tensorboard --host=0.0.0.0 --port=6006 --logdir==logs
