@@ -14,7 +14,7 @@
 
 import pandas as pd
 import numpy as np
-from hist_data import HistData
+from hist_data import HistData, BitcoinHistData
 
 
 # In[ ]:
@@ -30,7 +30,8 @@ def create_dataframe(dataarray):
     new_df = pd.DataFrame.from_records(dataarray,                          index=['Date'], columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
     return new_df
 
-def create_new_dataarray(old_dataframe, new_index, i):
+def create_new_dataarray(hist_data, new_index, i):
+    old_dataframe = hist_data.data()
     start = new_index[i].to_pydatetime()
     end = new_index[i+1].to_pydatetime()
     slice = old_dataframe.loc[start:end][:-1]
@@ -40,12 +41,16 @@ def create_new_dataarray(old_dataframe, new_index, i):
     high = max(slice['High'])
     low = min(slice['Low'])
     close = slice.ix[-1:]['Close'][0]
-    volume = slice.sum()['Volume']
+    if type(hist_data) == HistData:
+        volume = slice.sum()['Volume']
+    elif type(hist_data) == BitcoinHistData:
+        volume = slice.sum()['Volume_(BTC)']
     return np.array([start, open, high, low, close, volume])
 
-def create_new_dataframe(old_dataframe, freq='5min'):
+def create_new_dataframe(hist_data, freq='5min'):
+    old_dataframe = hist_data.data()
     new_index = get_new_index(old_dataframe, freq)
-    datalist = [create_new_dataarray(old_dataframe, new_index, i) for i in range(len(new_index) - 1)]
+    datalist = [create_new_dataarray(hist_data, new_index, i) for i in range(len(new_index) - 1)]
     none_removed_array = np.array([x for x in datalist if x is not None])
     new_df = create_dataframe(none_removed_array)
     return new_df
@@ -54,9 +59,21 @@ def create_new_dataframe(old_dataframe, freq='5min'):
 # In[ ]:
 
 
-read_filepath = 'historical_data/DAT_ASCII_USDJPY_M1_201710.csv'
-write_filepath = 'historical_data/DAT_ASCII_USDJPY_M1_201710_h1.csv'
-hd = HistData(read_filepath)
-new_df = create_new_dataframe(hd.data(), freq='1h')
-new_df.to_csv(write_filepath, sep=';', header=['Open', 'High', 'Low', 'Close', 'Volume'])
+if False:
+    read_filepath = 'historical_data/DAT_ASCII_USDJPY_M1_201710.csv'
+    write_filepath = 'historical_data/DAT_ASCII_USDJPY_M1_201710_h1.csv'
+    hd = HistData(read_filepath)
+    new_df = create_new_dataframe(hd, freq='1h')
+    new_df.to_csv(write_filepath, sep=';', header=['Open', 'High', 'Low', 'Close', 'Volume'])
+
+
+# In[ ]:
+
+
+if True:
+    read_filepath = 'historical_data/coincheckJPY_1-min_data_2014-10-31_to_2017-10-20.csv'
+    write_filepath = 'historical_data/coincheckJPY_1-min_data_2014-10-31_to_2017-10-20_h1.csv'
+    hd = BitcoinHistData(read_filepath)
+    new_df = create_new_dataframe(hd, freq='1h')
+    new_df.to_csv(write_filepath, sep=';', header=['Open', 'High', 'Low', 'Close', 'Volume'])
 
