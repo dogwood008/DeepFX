@@ -22,9 +22,3 @@ if __name__ == '__main__':
     print(repr(Action.BUY))
     print(len(Action))
 
-
-# In[ ]:
-
-
-
-

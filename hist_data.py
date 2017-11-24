@@ -26,7 +26,7 @@ class HistData:
         self.csv_data = pd.read_csv(self.csv_path,
                                     names=names, header=header,
                                     index_col='Date', parse_dates=['Date'],
-                                    dtype={'Date': 'str', 'Open': 'float', 'High': 'float', 'Low': 'float', 'Close': 'float', 'Volume': 'int'},
+                                    dtype={'Date': 'str', 'Open': 'float', 'High': 'float', 'Low': 'float', 'Close': 'float', 'Volume': 'float'},
                                     sep=sep)
         self.begin_date = begin_date
         self.end_date = end_date
@@ -83,7 +83,7 @@ class BitcoinHistData(HistData):
         self.csv_data = pd.read_csv(self.csv_path,
                                     names=names, header=header,
                                     parse_dates=['Timestamp'],
-                                    dtype={'Timestamp': 'int', 'Open': 'float', 'High': 'float', 'Low': 'float', 'Close': 'float', 'Volume': 'int'},
+                                    dtype={'Timestamp': 'int', 'Open': 'float', 'High': 'float', 'Low': 'float', 'Close': 'float', 'Volume': 'float'},
                                     sep=sep)
         self.csv_data['Date'] =  pd.to_datetime(self.csv_data['Timestamp'], unit='s')
         self.csv_data.index = self.csv_data['Date']

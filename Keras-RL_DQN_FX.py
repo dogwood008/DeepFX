@@ -17,8 +17,9 @@ import logging
 from logging import StreamHandler, LogRecord
 import base64
 
-from hist_data import HistData
+from hist_data import HistData, BitcoinHistData
 from fx_trade import FXTrade
+from bitcoin_trade import BitcoinTrade
 from deep_fx import DeepFX
 from debug_tools import DebugTools
 
@@ -80,7 +81,19 @@ deepfx_logger.critical('loglevel critical test')
 # In[ ]:
 
 
-hd = HistData(csv_path = 'historical_data/DAT_ASCII_USDJPY_M1_201710_h1.csv',
+is_for_fx = False
+is_for_bitcoin = True
+
+
+# In[ ]:
+
+
+if is_for_fx:
+    hd = HistData(csv_path = 'historical_data/DAT_ASCII_USDJPY_M1_201710_h1.csv',
+                     begin_date='2017-10-02T00:00:00',
+                     end_date='2017-10-02T01:59:59')
+elif is_for_bitcoin:
+    hd = HistData(csv_path = 'historical_data/coincheckJPY_1-min_data_2014-10-31_to_2017-10-20_h1.csv',
                      begin_date='2017-10-02T00:00:00',
                      end_date='2017-10-02T01:59:59')
 
@@ -95,10 +108,17 @@ len(hd.data())
 # In[ ]:
 
 
-env = FXTrade(1000000, 0.08, hd, logger=deepfx_logger)
-#env = FXTrade(1000000, 0.08, h, logger=logger)
-prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
-dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 100000, logger=deepfx_logger)
+if is_for_fx:
+    env = FXTrade(1000000, 0.08, hd, logger=deepfx_logger)
+    #env = FXTrade(1000000, 0.08, h, logger=logger)
+    prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
+    dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 100000, logger=deepfx_logger)
+elif is_for_bitcoin:
+    env = BitcoinTrade(10000000, None, hd, logger=deepfx_logger)
+    #env = FXTrade(1000000, 0.08, h, logger=logger)
+    prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
+    dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 1000, logger=deepfx_logger)
+    #dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 1000, logger=deepfx_logger)
 
 
 # In[ ]:
@@ -157,3 +177,9 @@ data.values
 #  timestamp:  "2017-11-18T17:12:18.459939016Z"  
 # }
 # ```
+
+# In[ ]:
+
+
+from notebook.auth import passwd;print(passwd())
+
