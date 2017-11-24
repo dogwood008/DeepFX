@@ -1,4 +1,4 @@
-FROM jupyter/tensorflow-notebook
+FROM nvidia/cuda:8.0-cudnn5-runtime-ubuntu14.04
 
 USER root
 
@@ -17,13 +17,7 @@ RUN pip install --upgrade pip
 
 # Install pip packages
 USER jovyan
-RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym google-api-python-client jupyter_contrib_nbextensions jupyterthemes google-api-python-client google-cloud-logging crcmod google-cloud-storage
-
-# Install tensorflow
-RUN if [ -z ${USE_GPU+x} ]; \
-	then pip install tensorflow; \
-	else pip install tensorflow-gpu; \
-	fi
+RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym google-api-python-client jupyter_contrib_nbextensions jupyterthemes google-api-python-client google-cloud-logging crcmod tensorflow-gpu
 
 # Install keras-rl
 RUN pip install git+https://github.com/matthiasplappert/keras-rl.git
@@ -41,5 +35,4 @@ RUN jupyter contrib nbextension install --user --skip-running-check && \
 
 ADD .screenrc /home/jovyan/
 ADD jupyter_notebook_config.py /home/jovyan/.jupyter/
-ENV TZ JST-9
 CMD start-notebook.sh
