@@ -1,4 +1,4 @@
-FROM nvidia/cuda:8.0-cudnn5-runtime-ubuntu14.04
+FROM dogwood008/jupyter-tensorflow-notebook-for-nvidia-cuda-8.0-cudnn5-devel-ubuntu14.04
 
 USER root
 
