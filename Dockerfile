@@ -35,4 +35,8 @@ RUN jupyter contrib nbextension install --user --skip-running-check && \
 
 ADD .screenrc /home/jovyan/
 ADD jupyter_notebook_config.py /home/jovyan/.jupyter/
+ENV TZ JST-9
+ENV GOOGLE_CLOUD_STORAGE_BUCKET $GOOGLE_CLOUD_STORAGE_BUCKET
+ENV GOOGLE_SERVICE_ACCOUNT_JSON_PATH $GOOGLE_SERVICE_ACCOUNT_JSON_PATH
+ENV JUPYTER_PASSWORD_HASH $JUPYTER_PASSWORD_HASH
 CMD start-notebook.sh
