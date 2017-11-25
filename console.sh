@@ -1,2 +1,6 @@
 #!/bin/sh
-nvidia-docker run -it -p 8888:8888 --volume "$PWD:/home/jovyan" -t dogwood008/deepfx bash
+nvidia-docker run -it -p 8888:8888 --volume "$PWD:/home/jovyan" \
+	--env GOOGLE_CLOUD_STORAGE_BUCKET=$GOOGLE_CLOUD_STORAGE_BUCKET \
+	--env GOOGLE_SERVICE_ACCOUNT_JSON_PATH=$GOOGLE_SERVICE_ACCOUNT_JSON_PATH \
+	--env JUPYTER_PASSWORD_HASH=$JUPYTER_PASSWORD_HASH \
+	-t dogwood008/deepfx bash

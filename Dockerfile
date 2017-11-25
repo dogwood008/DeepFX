@@ -10,7 +10,9 @@ RUN cd /tmp && wget 'http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.
         ./configure --prefix=/usr &&\
         make &&\
         make install
-RUN useradd jovyan
+
+RUN cd /tmp && wget https://github.com/direnv/direnv/releases/download/v2.13.1/direnv.linux-amd64 && \
+			chmod +x direnv.linux-amd64 && mv direnv.linux-amd64 /usr/local/bin/direnv
 
 # Upgrade pip
 USER jovyan
@@ -22,6 +24,7 @@ RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sk
 
 # Install keras-rl
 RUN pip install git+https://github.com/matthiasplappert/keras-rl.git
+RUN pip uninstall tensorflow
 
 RUN echo "#!/bin/sh\nexec >/dev/tty 2>/dev/tty </dev/tty; /usr/bin/screen" > /home/jovyan/screen.sh &&\
         chmod +x /home/jovyan/screen.sh
