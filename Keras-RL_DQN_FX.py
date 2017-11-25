@@ -90,8 +90,8 @@ if is_for_fx:
                      end_date='2017-10-02T01:59:59')
 elif is_for_bitcoin:
     hd = HistData(csv_path = 'historical_data/coincheckJPY_1-min_data_2014-10-31_to_2017-10-20_h1.csv',
-                     begin_date='2017-10-02T00:00:00',
-                     end_date='2017-10-02T01:59:59')
+                     begin_date='2017-09-01T00:00:00',
+                     end_date='2017-09-30T23:59:59')
 
 
 # In[ ]:
@@ -110,10 +110,10 @@ if is_for_fx:
     prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
     dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 100000, logger=deepfx_logger)
 elif is_for_bitcoin:
-    env = BitcoinTrade(10000000, None, hd, logger=deepfx_logger)
+    env = BitcoinTrade(10000000, None, hd, logger=deepfx_logger, amount_unit=0.001)
     #env = FXTrade(1000000, 0.08, h, logger=logger)
     prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
-    dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 1000, logger=deepfx_logger)
+    dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 500000, logger=deepfx_logger)
     #dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 1000, logger=deepfx_logger)
 
 
