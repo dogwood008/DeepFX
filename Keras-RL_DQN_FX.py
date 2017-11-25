@@ -6,6 +6,13 @@
 # In[ ]:
 
 
+import os
+os.environ['GOOGLE_CLOUD_STORAGE_BUCKET']
+
+
+# In[ ]:
+
+
 import matplotlib as mpl
 mpl.use('tkagg')
 import numpy as np
@@ -15,7 +22,6 @@ from logging import getLogger, DEBUG, INFO, WARN, ERROR, CRITICAL
 import os
 import logging
 from logging import StreamHandler, LogRecord
-import base64
 
 from hist_data import HistData, BitcoinHistData
 from fx_trade import FXTrade
@@ -28,22 +34,19 @@ from debug_tools import DebugTools
 
 
 import crcmod
-class LogRecordWithCRC16ThereadID(logging.LogRecord):
+class LogRecordWithHexThereadID(logging.LogRecord):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.crc16threadid = self._calc_crc16(self.process)
+        self.hex_threadid = self._calc_hex(self.process)
 
-    def _calc_crc16(self, int_value):
-        byte_array = str(int_value).encode('utf-8')
-        crc16 = crcmod.Crc(0x18005)
-        crc16.update(byte_array)
-        return crc16.hexdigest()
+    def _calc_hex(self, digit_value):
+        return hex(digit_value)
 
 def init_logger(sd_loglevel=logging.WARN, stream_loglevel=logging.CRITICAL):
-    logging.setLogRecordFactory(LogRecordWithCRC16ThereadID)
+    logging.setLogRecordFactory(LogRecordWithHexThereadID)
     logger = logging.getLogger('deepfx')
     logger.setLevel(sd_loglevel)
-    formatter = logging.Formatter('[%(crc16threadid)s] %(message)s')
+    formatter = logging.Formatter('[%(hex_threadid)s] %(message)s')
 
     if sd_loglevel:
         import google
@@ -177,9 +180,3 @@ data.values
 #  timestamp:  "2017-11-18T17:12:18.459939016Z"  
 # }
 # ```
-
-# In[ ]:
-
-
-from notebook.auth import passwd;print(passwd())
-
