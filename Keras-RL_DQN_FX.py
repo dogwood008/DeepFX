@@ -6,13 +6,6 @@
 # In[ ]:
 
 
-import os
-os.environ['GOOGLE_CLOUD_STORAGE_BUCKET']
-
-
-# In[ ]:
-
-
 import matplotlib as mpl
 mpl.use('tkagg')
 import numpy as np
@@ -138,6 +131,25 @@ else:
 
 
 deepfx_logger.critical('DeepFX Finished: %s' % DebugTools.now_str())
+
+
+# In[ ]:
+
+
+import os
+import subprocess
+if os.environ.get('SLACK_WEBHOOK_URL') and os.environ.get('GOOGLE_STACKDRIVER_URL'):
+    google_stackdriver_url = os.environ.get('GOOGLE_STACKDRIVER_URL')
+    payload = '{"username":"deepfx","icon_emoji":":+1:","channel":"deepfx","attachments":[{"color":"#36a64f","title":"DeepFX Finished","title_link":"%s","text":"<@%s> DeepFX Finished"}]}' % (google_stackdriver_url, os.environ.get('SLACK_NOTIFY_RECIEVE_USER'))
+    command = ['curl']
+    command.append('-XPOST')
+    command.append('-HContent-Type: application/json')
+    command.append("-d%s" % payload)
+    command.append(os.environ.get('SLACK_WEBHOOK_URL'))
+    print(command)
+    subprocess.run(command)
+else:
+    print('Skipped Slack Notification.')
 
 
 # In[ ]:
