@@ -1,2 +1,2 @@
 #!/bin/sh
-docker-compose build .
+nvidia-docker build . -t dogwood008/deepfx

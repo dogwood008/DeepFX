@@ -1,2 +1,2 @@
 #!/bin/sh
-docker-compose exec jupyter bash
+nvidia-docker run -it -p 8888:8888 --volume "$PWD:/home/jovyan" -t dogwood008/deepfx bash
