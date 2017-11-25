@@ -113,7 +113,7 @@ elif is_for_bitcoin:
     env = BitcoinTrade(10000000, None, hd, logger=deepfx_logger, amount_unit=0.001)
     #env = FXTrade(1000000, 0.08, h, logger=logger)
     prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
-    dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 500000, logger=deepfx_logger)
+    dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 10000000, logger=deepfx_logger)
     #dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 1000, logger=deepfx_logger)
 
 
