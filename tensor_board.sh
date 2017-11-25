@@ -1,2 +1,2 @@
 #!/bin/sh
-docker-compose exec jupyter tensorboard --logdir=log  
+nvidia-docker run -it -p 8888:8888 --volume "$PWD:/home/jovyan" -t dogwood008/deepfx tensorboard --logdir=logs
