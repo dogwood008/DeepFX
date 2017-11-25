@@ -10,6 +10,7 @@ RUN cd /tmp && wget 'http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.
         ./configure --prefix=/usr &&\
         make &&\
         make install
+RUN useradd jovyan
 
 # Upgrade pip
 USER jovyan
