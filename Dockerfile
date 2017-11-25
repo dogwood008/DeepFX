@@ -20,7 +20,7 @@ RUN pip install --upgrade pip
 
 # Install pip packages
 USER jovyan
-RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym google-api-python-client jupyter_contrib_nbextensions jupyterthemes google-api-python-client google-cloud-logging crcmod tensorflow-gpu==1.2.0
+RUN pip install backtrader scipy xgboost TA-Lib pandas gym numpy pandas keras sklearn gym google-api-python-client jupyter_contrib_nbextensions jupyterthemes google-api-python-client google-cloud-logging crcmod google-cloud-storage tensorflow-gpu==1.2.0
 
 # Install keras-rl
 RUN pip install git+https://github.com/matthiasplappert/keras-rl.git
