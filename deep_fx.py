@@ -10,6 +10,7 @@ from logging import getLogger, StreamHandler, DEBUG, INFO
 import time
 import os
 import warnings
+import keras
 from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten, InputLayer
 from keras.optimizers import Adam
@@ -61,19 +62,19 @@ class DeepFX:
         if wipe_instance_variables_after:
             self._wipe_instance_variables()
 
-    def test(self, episodes, callbacks=[], wipe_instance_variables_after=True):
+    def test(self, callbacks=[], wipe_instance_variables_after=True):
         self.setup()
-        self._agent.test(self._env, nb_episodes=episodes, visualize=False, callbacks=callbacks)
+        self._agent.test(self._env, visualize=False, callbacks=callbacks)
 
-        get_ipython().run_line_magic('matplotlib', 'inline')
-        import matplotlib.pyplot as plt
-
-        for obs in callbacks[0].rewards.values():
-            plt.plot([o for o in obs])
-        plt.xlabel("step")
-        plt.ylabel("reward")
-        if wipe_instance_variables_after:
-            self._wipe_instance_variables()
+        #%matplotlib inline
+        #import matplotlib.pyplot as plt
+#
+        #for obs in callbacks[0].rewards.values():
+        #    plt.plot([o for o in obs])
+        #plt.xlabel("step")
+        #plt.ylabel("reward")
+        #if wipe_instance_variables_after:
+        #    self._wipe_instance_variables()
         
     def _wipe_instance_variables(self):
          self._callbacks, self._agent, self._model,                 self._memory, self._policy, self.env = [None] * 6
