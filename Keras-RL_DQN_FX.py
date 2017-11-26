@@ -154,7 +154,6 @@ if os.environ.get('SLACK_WEBHOOK_URL') and os.environ.get('GOOGLE_STACKDRIVER_UR
     command.append('-HContent-Type: application/json')
     command.append("-d%s" % payload)
     command.append(os.environ.get('SLACK_WEBHOOK_URL'))
-    print(command)
     subprocess.run(command)
 else:
     print('Skipped Slack Notification.')
