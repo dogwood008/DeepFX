@@ -21,7 +21,7 @@ class TestOutputLogger(TrainEpisodeLogger):
     def __init__(self, hist_data):
         self.logs = []
         self.hist_data = hist_data
-        super(EpisodeLogger, self).__init__()
+        super(TestOutputLogger, self).__init__()
 
     def on_train_begin(self, logs):
         pass
