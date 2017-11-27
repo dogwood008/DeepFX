@@ -11,7 +11,7 @@ import enum
 
 
 class Action(enum.Enum):
-    SELL = -1; STAY = 0; BUY = +1
+    SELL = 0; STAY = 1; BUY = 2
 
 
 # In[ ]:

@@ -17,10 +17,9 @@ from position import Position
 
 
 class FXTrade(gym.core.Env):
-    AMOUNT_UNIT = 10000
     THRESHOULD_TIME_DELTA = dt.timedelta(days=1)
     
-    def __init__(self, initial_cash, spread, hist_data, seed_value=100000, logger=None):
+    def __init__(self, initial_cash, spread, hist_data, seed_value=100000, logger=None, amount_unit=10000):
         self.hist_data = hist_data
         self.initial_cash = initial_cash
         self.cash = initial_cash
@@ -28,6 +27,7 @@ class FXTrade(gym.core.Env):
         self._positions = []
         self._seed = seed_value
         self._logger = logger
+        self.amount_unit = amount_unit
         np.random.seed(seed_value)
         
         # x軸: N番目の足（時間経過）, y軸: 現在の1USDの価格（単位：円）
@@ -114,6 +114,7 @@ class FXTrade(gym.core.Env):
     def _order(self, buy_or_sell, now_price, amount):
         position = Position(buy_or_sell=buy_or_sell, price=now_price, amount=amount)
         self._positions.append(position)
+        self.cash -= now_price * amount
         return position
     
     ''' 参照すべき価格を返す。取引しようとしているのが売りか買いかで判断する。 '''
@@ -148,7 +149,7 @@ class FXTrade(gym.core.Env):
     def _close_or_more_order(self, buy_or_sell_or_stay, now_price):
         if not self._positions: # position is empty
             if buy_or_sell_or_stay != Action.STAY.value:
-                self._order(buy_or_sell_or_stay, self.AMOUNT_UNIT, now_price)
+                self._order(buy_or_sell_or_stay, self.amount_unit, now_price)
         else: # I have positions
             # 売り: -1 / 買い: +1のため、(-1)の乗算で逆のアクションになる
             reverse_action = buy_or_sell_or_stay * (-1)
@@ -157,7 +158,7 @@ class FXTrade(gym.core.Env):
                 self._close_all_positions_by(now_price)
             else:
                 # 追加オーダー
-                self._order(buy_or_sell_or_stay, self.AMOUNT_UNIT, now_price)
+                self._order(buy_or_sell_or_stay, self.amount_unit, now_price)
         
     ''' 各stepごとに呼ばれる
         actionを受け取り、次のstateとreward、episodeが終了したかどうかを返すように実装 '''
@@ -165,8 +166,8 @@ class FXTrade(gym.core.Env):
         self._logger.info('_step %08d STARTED' % self._now_index)
         
         # actionを受け取り、次のstateを決定
-        buy_or_sell_or_stay = action - 1
-        assert buy_or_sell_or_stay == -1 or             buy_or_sell_or_stay == 0 or             buy_or_sell_or_stay == 1, 'buy_or_sell_or_stay: %d' % buy_or_sell_or_stay
+        buy_or_sell_or_stay = action
+        assert buy_or_sell_or_stay == Action.SELL or             buy_or_sell_or_stay == Action.STAY or             buy_or_sell_or_stay == Action.BUY, 'buy_or_sell_or_stay: %d' % buy_or_sell_or_stay
         
         # ポジションの手仕舞い、または追加オーダーをする
         values_at_this_index = self.hist_data.values_at(self._now_index)
