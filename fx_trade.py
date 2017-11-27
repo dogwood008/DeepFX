@@ -167,7 +167,7 @@ class FXTrade(gym.core.Env):
         
         # actionを受け取り、次のstateを決定
         buy_or_sell_or_stay = action
-        assert buy_or_sell_or_stay == Action.SELL or             buy_or_sell_or_stay == Action.STAY or             buy_or_sell_or_stay == Action.BUY, 'buy_or_sell_or_stay: %d' % buy_or_sell_or_stay
+        assert buy_or_sell_or_stay == Action.SELL.value or             buy_or_sell_or_stay == Action.STAY.value or             buy_or_sell_or_stay == Action.BUY.value, 'buy_or_sell_or_stay: %d' % buy_or_sell_or_stay
         
         # ポジションの手仕舞い、または追加オーダーをする
         values_at_this_index = self.hist_data.values_at(self._now_index)
