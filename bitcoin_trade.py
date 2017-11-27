@@ -45,7 +45,8 @@ class BitcoinTrade(FXTrade):
             # FXでは売り買いどちらかでもポジションを持てたが、
             # Bitcoinは買いからのみとする
             if buy_or_sell_or_stay == Action.BUY.value:
-                self._order(buy_or_sell_or_stay, self.amount_unit, now_price)
+                self._order(buy_or_sell_or_stay,
+                            now_price=now_price, amount=self.amount_unit)
         else: # I have positions
             # 売り: -1 / 買い: +1のため、(-1)の乗算で逆のアクションになる
             # reverse_action = buy_or_sell_or_stay * (-1)
@@ -55,5 +56,6 @@ class BitcoinTrade(FXTrade):
                 self._close_all_positions_by(now_price)
             elif buy_or_sell_or_stay == Action.BUY.value:
                 # 買いサインなら買い増し追加オーダー
-                self._order(buy_or_sell_or_stay, self.amount_unit, now_price)
+                self._order(buy_or_sell_or_stay,
+                            now_price=now_price, amount=self.amount_unit)
 

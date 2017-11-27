@@ -81,6 +81,7 @@ deepfx_logger.critical('loglevel critical test')
 
 is_for_fx = False
 is_for_bitcoin = True
+is_to_train = True
 
 
 # In[ ]:
@@ -91,7 +92,6 @@ if is_for_fx:
                      begin_date='2017-10-02T00:00:00',
                      end_date='2017-10-02T01:59:59')
 elif is_for_bitcoin:
-    is_to_train = False
     csv_path = 'historical_data/coincheckJPY_1-min_data_2014-10-31_to_2017-10-20_h1.csv'
     if is_to_train:
         begin_date='2017-09-01T00:00:00'

@@ -64,57 +64,61 @@ class FXTrade(gym.core.Env):
     def _seed(self):
         return self._seed
     
-    def _datetime2float(self, datetime64_value):
-        try:
-            float_val = float(str(datetime64_value.astype('uint64'))[:10])
-            return float_val
-        except:
-            self._logger.error('_datetime2float except')
-            import pdb; pdb.set_trace()
+    #def _datetime2float(self, datetime64_value):
+    #    try:
+    #        float_val = float(str(datetime64_value.astype('uint64'))[:10])
+    #        return float_val
+    #    except:
+    #        self._logger.error('_datetime2float except')
+    #        import pdb; pdb.set_trace()
+    #
+    #def _float2datetime(self, float_timestamp):
+    #    try:
+    #        datetime_val = np.datetime64(dt.datetime.utcfromtimestamp(float_timestamp))
+    #        return datetime_val
+    #    except:
+    #        self._logger.error('_float2datetime except')
+    #        import pdb; pdb.set_trace()
     
-    def _float2datetime(self, float_timestamp):
-        try:
-            datetime_val = np.datetime64(dt.datetime.utcfromtimestamp(float_timestamp))
-            return datetime_val
-        except:
-            self._logger.error('_float2datetime except')
-            import pdb; pdb.set_trace()
-    
-    ''' 総含み益を計算する '''
-    def _calc_total_unrealized_gain_by(self, now_buy_price, now_sell_price):
+    ''' 評価額を計算する '''
+    def _calc_total_estimated_value(self, now_buy_price, now_sell_price):
         positions_buy_or_sell = None
         if self._positions:
-            self._logger.info('現在の総含み益を再計算')
+            self._logger.info('現在の評価額を再計算')
             positions_buy_or_sell = self._positions[0].buy_or_sell
             self._logger.info('buy_or_sell: %d' % positions_buy_or_sell)
         else:
-            positions_buy_or_sell = Action.BUY.value
-        self._logger.info('positions_buy_or_sell: %d', positions_buy_or_sell)
+            positions_buy_or_sell = None
+        self._logger.info('positions_buy_or_sell: %s', positions_buy_or_sell)
         now_price_for_positions = self._get_price_of(positions_buy_or_sell, now_buy_price, now_sell_price)
         
         if not self._positions: # positions is empty
             return 0
-        total_profit = 0
+        total_estimated_value = 0
         for position in self._positions:
-            total_profit += position.calc_profit_by(now_price_for_positions)
-        return total_profit
+            total_estimated_value += position.estimated_value(now_price_for_positions)
+        return total_estimated_value
     
     ''' 全ポジションを決済する '''
     def _close_all_positions_by(self, now_price):
-        total_profit = 0
+        total_estimated_value = 0
         buy_or_sell = self._positions[0].buy_or_sell
         
         for position in self._positions:
-            total_profit += position.calc_profit_by(now_price)
+            total_estimated_value += position.estimated_value(now_price)
         self._positions = []
-        self.cash += total_profit
-        return total_profit
+        self.cash += total_estimated_value
+        return total_estimated_value
         
     ''' 注文を出す '''
     def _order(self, buy_or_sell, now_price, amount):
+        required_cash = now_price * amount
+        # 簡単にするために、以下のロジックはスキップする
+        #if required_cash > self.cash: # 手持ちの現金で買えなければ、買わない
+        #    return None
         position = Position(buy_or_sell=buy_or_sell, price=now_price, amount=amount)
         self._positions.append(position)
-        self.cash -= now_price * amount
+        self.cash -= required_cash
         return position
     
     ''' 参照すべき価格を返す。取引しようとしているのが売りか買いかで判断する。 '''
@@ -149,16 +153,21 @@ class FXTrade(gym.core.Env):
     def _close_or_more_order(self, buy_or_sell_or_stay, now_price):
         if not self._positions: # position is empty
             if buy_or_sell_or_stay != Action.STAY.value:
-                self._order(buy_or_sell_or_stay, self.amount_unit, now_price)
+                self._order(buy_or_sell_or_stay,
+                            now_price=now_price, amount=self.amount_unit)
         else: # I have positions
-            # 売り: -1 / 買い: +1のため、(-1)の乗算で逆のアクションになる
-            reverse_action = buy_or_sell_or_stay * (-1)
+            if buy_or_sell_or_stay == Action.BUY.value:
+                reverse_action = Action.SELL.value
+            elif buy_or_sell_or_stay == Action.SELL.value:
+                reverse_action = Action.BUY.value
+
             if self._positions[0].buy_or_sell == reverse_action:
                 # ポジションと逆のアクションを指定されれば、手仕舞い
                 self._close_all_positions_by(now_price)
             else:
                 # 追加オーダー
-                self._order(buy_or_sell_or_stay, self.amount_unit, now_price)
+                self._order(buy_or_sell_or_stay,
+                            now_price=now_price, amount=self.amount_unit)
         
     ''' 各stepごとに呼ばれる
         actionを受け取り、次のstateとreward、episodeが終了したかどうかを返すように実装 '''
@@ -175,16 +184,15 @@ class FXTrade(gym.core.Env):
         now_price = now_sell_price = now_buy_price = values_at_this_index.Close[0]
         self._close_or_more_order(buy_or_sell_or_stay, now_buy_price)
         
-        # 現在の総含み益の合計値を再計算
-        total_unrealized_gain = self._calc_total_unrealized_gain_by(
-            now_buy_price, now_sell_price)
+        # 現在の評価額の合計値を再計算
+        total_estimated_value = self._calc_total_estimated_value(now_buy_price, now_sell_price)
 
         # For Debug: 毎日00:00に買値を表示する。学習の進捗を確認するため。
         now_datetime = values_at_this_index.index[0]
         self.print_info_if_a_day_begins(now_datetime, now_buy_price)
         
-        # 報酬は現金と総含み益
-        reward = total_unrealized_gain + self.cash
+        # 報酬は現金と総評価額から初期現金を引いたもの（未実現利益＋実現利益）
+        reward = total_estimated_value + self.cash - self.initial_cash
         self._logger.info('reward: %f', reward)
 
         # 日付が学習データの最後と一致するか、含み損が初期の現金の1割以上で終了
@@ -232,6 +240,7 @@ class FXTrade(gym.core.Env):
         now_buy_price = self.hist_data.data().ix[[initial_index], ['Close']].Close.iloc[0]
         self._now_index = initial_index
         self._positions = []
+        self.cash = self.initial_cash
         self._logger.info('_reset END')
         next_state = now_buy_price
         return np.array([0, next_state])
