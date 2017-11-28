@@ -129,6 +129,15 @@ elif is_for_bitcoin:
 # In[ ]:
 
 
+INPUT_SHAPE = (84, 84)
+WINDOW_LENGTH = 4
+input_shape = (WINDOW_LENGTH,) + INPUT_SHAPE
+input_shape
+
+
+# In[ ]:
+
+
 if is_to_train:
     dfx.train(is_for_time_measurement=True)
 else:
