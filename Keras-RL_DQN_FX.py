@@ -117,11 +117,11 @@ if is_for_fx:
     env = FXTrade(1000000, 0.08, hd, logger=deepfx_logger)
     #env = FXTrade(1000000, 0.08, h, logger=logger)
     prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq1.440944e+06_episode00003.h5'
-    dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 100000, logger=deepfx_logger)
+    dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 1000000, logger=deepfx_logger)
 elif is_for_bitcoin:
     env = BitcoinTrade(10000000, None, hd, logger=deepfx_logger, amount_unit=0.001)
     #env = FXTrade(1000000, 0.08, h, logger=logger)
-    prepared_model_filename = 'Keras-RL_DQN_FX_model_meanq2.149058e+07_episode05184.h5'
+    prepared_model_filename = None #'Keras-RL_DQN_FX_model_meanq2.149058e+07_episode05184.h5'
     dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 10000000, logger=deepfx_logger)
     #dfx = DeepFX(env, prepared_model_filename=prepared_model_filename, steps = 1000, logger=deepfx_logger)
 
@@ -183,19 +183,3 @@ data.values
 # 
 # - [Deep Q-LearningでFXしてみた](http://recruit.gmo.jp/engineer/jisedai/blog/deep-q-learning/)
 # - [slide](https://www.slideshare.net/JunichiroKatsuta/deep-qlearningfx)
-
-# ## TODO
-# 
-# 足の配列について、indexの外を読み出そうとしている節があるので直す。
-# 
-# ```json
-# {
-#  insertId:  "1l630l2g1k8tnms"  
-#  jsonPayload: {…}  
-#  logName:  "projects/deep-fx/logs/deepfx"  
-#  receiveTimestamp:  "2017-11-18T17:12:18.459939016Z"  
-#  resource: {…}  
-#  severity:  "WARNING"  
-#  timestamp:  "2017-11-18T17:12:18.459939016Z"  
-# }
-# ```
