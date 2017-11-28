@@ -9,6 +9,7 @@ import warnings
 import timeit
 import json
 from tempfile import mkdtemp
+from action import Action
 
 import numpy as np
 
@@ -83,19 +84,12 @@ class EpisodeLogger(rl.callbacks.TrainEpisodeLogger):
         del self.actions[episode]
         del self.metrics[episode]
 
-    # def __init__(self):
-    #     self.observations = {}
-    #     self.rewards = {}
-    #     self.actions = {}
-# 
-    # def on_episode_begin(self, episode, logs):
-    #     self.observations[episode] = []
-    #     self.rewards[episode] = []
-    #     self.actions[episode] = []
-# 
-    # def on_step_end(self, step, logs):
-    #     episode = logs['episode']
-    #     self.observations[episode].append(logs['observation'])
-    #     self.rewards[episode].append(logs['reward'])
-    #     self.actions[episode].append(logs['action'])
+    #def on_step_end(self, step, logs):
+    #    episode = logs['episode']
+    #    self.observations[episode].append(logs['observation'])
+    #    self.rewards[episode].append(logs['reward'])
+    #    self.actions[episode].append(logs['action'])
+    #    self.metrics[episode].append(logs['metrics'])
+    #    self.step += 1
+    #    print('[%6d] %3.5e %s' % (step, logs['reward'], Action(logs['action'])))
 
