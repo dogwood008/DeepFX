@@ -37,7 +37,7 @@ from debug_tools import DebugTools
 class DeepFX:
     def __init__(self, env, steps=50000,
               log_directory='./logs', model_directory='./models',
-              model_filename='%s_model_episode{episode:07d}_mae{mae:3.3e}_' % DebugTools.now_12(),
+              model_filename='%s_model_episode{episode:07d}_mae{mean_absolute_error:3.3e}_' % DebugTools.now_12(),
               prepared_model_filename=None,
               weights_filename='Keras-RL_DQN_FX_weights.h5',
               logger=None):
@@ -56,7 +56,7 @@ class DeepFX:
 
     def setup(self):
         self._agent, self._model, self._memory, self._policy = self._initialize_agent()
-        self._agent.compile('adam')
+        self._agent.compile(Adam(lr=.00025), metrics=['mae'])
         self._logger.info(self._model.summary())
 
     def train(self, is_for_time_measurement=False, wipe_instance_variables_after=True):
@@ -100,15 +100,12 @@ class DeepFX:
         # ref: https://github.com/yukiB/keras-dqn-test
         model = Sequential()
         model.add(Dense(128, activation='relu',
-                        kernel_initializer=TruncatedNormal(stddev=0.0001),
                         bias_initializer='ones',
                         input_shape=(1,) + observation_space_shape))
         model.add(Flatten())
         model.add(Dense(128, activation='relu',
-                        kernel_initializer=TruncatedNormal(stddev=0.0001),
                         bias_initializer='ones'))
         model.add(Dense(128, activation='relu',
-                        kernel_initializer=TruncatedNormal(stddev=0.0001),
                         bias_initializer='ones'))
         model.add(Dense(nb_actions, activation='linear'))
         return model
@@ -119,7 +116,7 @@ class DeepFX:
         model = self._get_model(self._load_model_path, observation_space_shape, nb_actions)
         
         # experience replay用のmemory
-        memory = SequentialMemory(limit=500000, window_length=1)
+        memory = SequentialMemory(limit=500000, window_length=48)
         # 行動方策はオーソドックスなepsilon-greedy。ほかに、各行動のQ値によって確率を決定するBoltzmannQPolicyが利用可能
         policy = EpsGreedyQPolicy(eps=0.1) 
         dqn = DQNAgent(model=model, nb_actions=nb_actions, memory=memory, nb_steps_warmup=100,
@@ -130,7 +127,7 @@ class DeepFX:
         
     def _get_callbacks(self):
         tensor_board_callback = MyTensorBoard(log_dir=self._log_directory, histogram_freq=1, embeddings_layer_names=True, write_graph=True)
-        model_saver_callback = ModelSaver(self._save_model_path, monitor='mae', mode='min', logger=self._logger)
+        model_saver_callback = ModelSaver(self._save_model_path, monitor='mean_absolute_error', mode='min', logger=self._logger)
         episode_logger_callback = EpisodeLogger(logger=self._logger)
         callbacks = [tensor_board_callback, model_saver_callback, episode_logger_callback]
         return callbacks
