@@ -28,6 +28,7 @@ from episode_logger import EpisodeLogger
 from model_saver import ModelSaver
 from my_tensor_board import MyTensorBoard
 from fx_trade import FXTrade
+from debug_tools import DebugTools
 
 
 # In[ ]:
@@ -36,7 +37,7 @@ from fx_trade import FXTrade
 class DeepFX:
     def __init__(self, env, steps=50000,
               log_directory='./logs', model_directory='./models',
-              model_filename='Keras-RL_DQN_FX_model_meanq{mean_q:e}_episode{episode:05d}',
+              model_filename='%s_model_episode{episode:07d}_mae{mae:3.3e}_' % DebugTools.now_12(),
               prepared_model_filename=None,
               weights_filename='Keras-RL_DQN_FX_weights.h5',
               logger=None):
@@ -142,7 +143,7 @@ class DeepFX:
         
     def _get_callbacks(self):
         tensor_board_callback = MyTensorBoard(log_dir=self._log_directory, histogram_freq=1, embeddings_layer_names=True, write_graph=True)
-        model_saver_callback = ModelSaver(self._save_model_path, monitor='mean_q', mode='max', logger=self._logger)
+        model_saver_callback = ModelSaver(self._save_model_path, monitor='mae', mode='min', logger=self._logger)
         episode_logger_callback = EpisodeLogger(logger=self._logger)
         callbacks = [tensor_board_callback, model_saver_callback, episode_logger_callback]
         return callbacks
