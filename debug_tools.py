@@ -12,7 +12,16 @@ import datetime as dt
 
 class DebugTools:
     def now():
-        return dt.datetime.now() + dt.timedelta(hours=9)
+        return dt.datetime.now()
     def now_str():    
         return DebugTools.now().strftime('%y/%m/%d %H:%M:%S')
+    def now_12():
+        return DebugTools.now().strftime('%y%m%d_%H%M%S')
+
+
+# In[ ]:
+
+
+if __name__ == '__main__':
+    print(DebugTools.now_12())
 
