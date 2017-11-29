@@ -19,5 +19,7 @@ services:
   tensorboard:
     build: .
     ports:
-      - '3000:3000'
-    command: tensorboard --host=0.0.0.0 --port=6006 --logdir==logs
+      - '6006:6006'
+    volumes:
+      - './logs:/home/jovyan/logs'
+    command: tensorboard --host=0.0.0.0 --port=6006 --logdir=logs
