@@ -90,40 +90,27 @@ class DeepFX:
 
     def _get_model(self, load_model_path, observation_space_shape, nb_actions):
         import keras.backend as K
-        if load_model_path is None:
-            # DQNのネットワーク定義
-            # ref: https://github.com/googledatalab/notebooks/blob/master/samples/TensorFlow/Machine%20Learning%20with%20Financial%20Data.ipynb
-            # ref: https://elix-tech.github.io/ja/2016/06/29/dqn-ja.html
-            # ref: https://github.com/matthiasplappert/keras-rl/blob/master/examples/dqn_atari.py
-            # ref: https://github.com/yukiB/keras-dqn-test
-            #INPUT_SHAPE = (84, 84)
-            #WINDOW_LENGTH = 4
-            #input_shape = (WINDOW_LENGTH,) + INPUT_SHAPE
-            # http://aidiary.hatenablog.com/entry/20161120/1479640534
-            # "channels_last"の場合，入力のshapeは"(batch, height, width, channels)"
-            input_shape = (84, 84, 4)
-            model = Sequential()
-            #if K.image_dim_ordering() == 'tf':
-            #    # (width, height, channels)
-            #    model.add(Permute((2, 3, 1), input_shape=input_shape))
-            #elif K.image_dim_ordering() == 'th':
-            #    # (channels, width, height)
-            #    model.add(Permute((1, 2, 3), input_shape=input_shape))
-            #else:
-            #    raise RuntimeError('Unknown image_dim_ordering.')
-            model.add(Conv2D(32, (8, 8), strides=(4, 4), input_shape=input_shape, name='1st'))
-            model.add(Activation('relu'))
-            model.add(Conv2D(64, (4, 4), strides=(2, 2)))
-            model.add(Activation('relu'))
-            model.add(Conv2D(64, (3, 3), strides=(1, 1)))
-            model.add(Activation('relu'))
-            model.add(Flatten())
-            model.add(Dense(512))
-            model.add(Activation('relu'))
-            model.add(Dense(nb_actions))
-            model.add(Activation('linear'))
-        else:
+        if load_model_path is not None:
             model = keras.models.load_model(load_model_path)
+            return model
+        # DQNのネットワーク定義
+        # ref: https://github.com/googledatalab/notebooks/blob/master/samples/TensorFlow/Machine%20Learning%20with%20Financial%20Data.ipynb
+        # ref: https://elix-tech.github.io/ja/2016/06/29/dqn-ja.html
+        # ref: https://github.com/matthiasplappert/keras-rl/blob/master/examples/dqn_atari.py
+        # ref: https://github.com/yukiB/keras-dqn-test
+        model = Sequential()
+        model.add(Dense(128, activation='relu',
+                        kernel_initializer=TruncatedNormal(stddev=0.0001),
+                        bias_initializer='ones',
+                        input_shape=(1,) + observation_space_shape))
+        model.add(Flatten())
+        model.add(Dense(128, activation='relu',
+                        kernel_initializer=TruncatedNormal(stddev=0.0001),
+                        bias_initializer='ones'))
+        model.add(Dense(128, activation='relu',
+                        kernel_initializer=TruncatedNormal(stddev=0.0001),
+                        bias_initializer='ones'))
+        model.add(Dense(nb_actions, activation='linear'))
         return model
 
     def _initialize_agent(self):
