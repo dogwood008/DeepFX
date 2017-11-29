@@ -101,7 +101,7 @@ class DeepFX:
         model = Sequential()
         model.add(Dense(128, activation='relu',
                         bias_initializer='ones',
-                        input_shape=(1,) + observation_space_shape))
+                        input_shape=(48,) + observation_space_shape))
         model.add(Flatten())
         model.add(Dense(128, activation='relu',
                         bias_initializer='ones'))
